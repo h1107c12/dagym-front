@@ -1,6 +1,19 @@
 import React from 'react';
-import { ScrollView, Image } from 'react-native';
+import { ScrollView, Image, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
+import type { DefaultTheme } from 'styled-components/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import Card from '../src/components/Card';
+import SectionHeader from '../src/components/SectionHeader';
+import Chip from '../src/components/Chip';
+import ProgressBar from '../src/components/ProgressBar';
+import appTheme from '../src/styles/theme';
+
+const Page = styled(SafeAreaView)`
+  flex: 1;
+  background-color: ${(p: { theme: DefaultTheme }) => p.theme.colors.background};
+`;
 
 const Container = styled(ScrollView)`
   flex: 1;
@@ -17,29 +30,24 @@ const Banner = styled.View`
 const BannerTitle = styled.Text`
   color: white;
   font-weight: 800;
+  font-size: 16px;
   margin-bottom: 6px;
 `;
 
 const BannerText = styled.Text`
-  color: white;
+  color: #eafff7;
+  font-size: 13px;
 `;
 
-const Card = styled.View`
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 16px;
+const Title = styled.Text`
+  color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text};
+  font-weight: 800;
 `;
 
 const Row = styled.View`
   flex-direction: row;
   justify-content: space-between;
-  margin-top: 6px;
   align-items: center;
-`;
-
-const Title = styled.Text`
-  font-weight: 800;
 `;
 
 const Stat = styled.Text`
@@ -47,19 +55,9 @@ const Stat = styled.Text`
   font-size: 12px;
 `;
 
-const TagRow = styled.View`
-  flex-direction: row;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-`;
-
-const Tag = styled.Text`
-  background: #eef9ff;
-  color: #0b76d1;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
+const MacroCard = styled(Card)`
+  padding: 12px;
+  margin-bottom: 8px;
 `;
 
 const AddBtn = styled.TouchableOpacity`
@@ -75,37 +73,17 @@ const AddText = styled.Text`
   font-weight: 700;
 `;
 
-const NutrWrap = styled.View`
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
+const MealRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
 `;
 
-const Bar = styled.View`
-  height: 8px;
-  background: #efeff5;
-  border-radius: 8px;
-  margin-top: 6px;
-`;
-
-type FillProps = { w: number; color?: string };
-
-const Fill = styled.View<FillProps>`
-  height: 100%;
-  width: ${(p: FillProps) => p.w}%;
-  background: ${(p: FillProps) => (p.color ?? '#6e56cf')};
-  border-radius: 8px;
-`;
-
-
-const shadow = {
-  elevation: 2,
-  shadowColor: '#000',
-  shadowOpacity: 0.05,
-  shadowRadius: 8,
-  shadowOffset: { width: 0, height: 2 },
-} as const;
+const meals = [
+  { title: '단백질 볼 샐러드', kcal: 320, img: 'https://picsum.photos/seed/diet1/80' },
+  { title: '닭가슴살 스테이크', kcal: 410, img: 'https://picsum.photos/seed/diet2/80' },
+  { title: '토마토 파스타(라이트)', kcal: 510, img: 'https://picsum.photos/seed/diet3/80' },
+];
 
 const nutrients: [label: string, v: number, max: number, color: string][] = [
   ['단백질', 45, 120, '#6e56cf'],
@@ -116,46 +94,60 @@ const nutrients: [label: string, v: number, max: number, color: string][] = [
 
 export default function DietScreen() {
   return (
-    <Container>
-      <Banner>
-        <BannerTitle>AI 영양 분석</BannerTitle>
-        <BannerText>현재 단백질 섭취가 부족합니다. 단백질이 풍부한 식단을 추천드려요.</BannerText>
-      </Banner>
-
-      <NutrWrap style={shadow}>
-        <Title style={{ marginBottom: 12 }}>오늘의 영양소 섭취</Title>
-        {nutrients.map(([label, v, max, color]) => {
-          const pct = Math.min(100, Math.round((v / max) * 100));
-          return (
-            <Card key={label} style={{ ...shadow, padding: 12, marginBottom: 8 }}>
-              <Row>
-                <Title style={{ fontSize: 14 }}>{label}</Title>
-                <Stat>{v}/{max}g</Stat>
-              </Row>
-              <Bar><Fill w={pct} color={color} /></Bar>
-            </Card>
-          );
-        })}
-      </NutrWrap>
-
-      <Title>AI 추천 식단</Title>
-
-      {[1, 2, 3].map((i) => (
-        <Card key={i} style={shadow}>
-          <Row style={{ gap: 12 }}>
-            <Image
-              source={{ uri: 'https://picsum.photos/seed/diet' + i + '/80' }}
-              style={{ width: 64, height: 64, borderRadius: 12 }}
-            />
-            <Title style={{ flex: 1 }}>단백질 볼 샐러드</Title>
-            <Stat>320 kcal</Stat>
+    <Page>
+      <Container>
+        {/* AI 배너 */}
+        <Banner style={appTheme.shadow.card}>
+          <Row>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="sparkles" size={18} color="#fff" />
+              <BannerTitle>AI 영양 분석</BannerTitle>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
           </Row>
-          <TagRow>
-            <Tag>고단백</Tag><Tag>저칼로리</Tag><Tag>글루텐프리</Tag>
-          </TagRow>
-          <AddBtn><AddText>식단에 추가</AddText></AddBtn>
+          <BannerText>현재 단백질 섭취가 부족합니다. 단백질이 풍부한 식단을 추천드려요.</BannerText>
+        </Banner>
+
+        {/* 오늘의 영양소 섭취 */}
+        <Card style={appTheme.shadow.card}>
+          <Title style={{ marginBottom: 12 }}>오늘의 영양소 섭취</Title>
+          {nutrients.map(([label, v, max, color]) => {
+            const pct = Math.min(100, Math.round((v / max) * 100));
+            return (
+              <MacroCard key={label} style={appTheme.shadow.card}>
+                <Row>
+                  <Title style={{ fontSize: 14 }}>{label}</Title>
+                  <Stat>{v}/{max}g</Stat>
+                </Row>
+                <ProgressBar percent={pct} color={color} style={{ marginTop: 6 }} />
+              </MacroCard>
+            );
+          })}
         </Card>
-      ))}
-    </Container>
+
+        {/* AI 추천 식단 */}
+        <Card style={[appTheme.shadow.card, { marginTop: 12 }]}>
+          <SectionHeader title="AI 추천 식단" icon="restaurant" />
+          {meals.map((m) => (
+            <Card key={m.title} style={[appTheme.shadow.card, { padding: 12, marginBottom: 8 }]}>
+              <MealRow>
+                <Image source={{ uri: m.img }} style={{ width: 64, height: 64, borderRadius: 12 }} />
+                <Title style={{ flex: 1, fontSize: 14 }}>{m.title}</Title>
+                <Stat>{m.kcal} kcal</Stat>
+              </MealRow>
+              <View style={{ height: 8 }} />
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                <Chip>고단백</Chip>
+                <Chip>저칼로리</Chip>
+                <Chip>글루텐프리</Chip>
+              </View>
+              <AddBtn>
+                <AddText>식단에 추가</AddText>
+              </AddBtn>
+            </Card>
+          ))}
+        </Card>
+      </Container>
+    </Page>
   );
 }

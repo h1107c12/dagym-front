@@ -248,7 +248,7 @@ export default function HomeScreen() {
               <LogoText>FM</LogoText>
             </Logo>
             <BrandTextCol>
-              <BrandTitle>FitMind AI</BrandTitle>
+              <BrandTitle>daGYM</BrandTitle>
               <BrandSubtitle>AI 트레이너와 함께하는 헬스 여정</BrandSubtitle>
             </BrandTextCol>
           </BrandRow>
