@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import * as NavigationBar from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import LoginScreen from './screens/LoginScreen';
+import RegisterScreen from './screens/RegisterScreen';
 
 const MyTheme = {
   ...DefaultTheme,
@@ -63,5 +64,26 @@ export default function App() {
         </NavigationContainer>
       </ThemeProvider>
     </AuthProvider>
+  );
+}
+
+type RootStackParamList = { Login: undefined; Register: undefined; Main: undefined };
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+function RootNavigator() {
+  const { isLoading, isSignedIn } = useAuth();
+  if (isLoading) return null;
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {isSignedIn ? (
+        <Stack.Screen name="Main" component={MainTabs} />
+      ) : (
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </>
+      )}
+    </Stack.Navigator>
   );
 }

@@ -7,12 +7,27 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { DefaultTheme } from 'styled-components/native';
 import appTheme from '../src/styles/theme';
+import { Pressable } from 'react-native';
+import { useAuth } from '../src/context/AuthContext';
 
 const Page = styled(SafeAreaView)`
   flex: 1;
   background-color: ${(p: { theme: DefaultTheme }) => p.theme.colors.background};
 `;
 
+const { signOut } = useAuth();
+
+<HeaderRight>
+  <Streak>
+    <Ionicons name="flame" size={14} color="#2B7A0B" />
+    <StreakText>7일 연속</StreakText>
+  </Streak>
+  {/* 알림 아이콘을 유지하고, 프로필 아이콘 대신 로그아웃 */}
+  <Ionicons name="notifications-outline" size={22} color="#121212" />
+  <Pressable onPress={signOut} hitSlop={10}>
+    <Ionicons name="log-out-outline" size={24} color="#121212" />
+  </Pressable>
+</HeaderRight>
 const Container = styled(ScrollView)`
   flex: 1;
   padding: 12px 16px 24px 16px;
