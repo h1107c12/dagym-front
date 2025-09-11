@@ -12,126 +12,47 @@ import { useNavigation } from '@react-navigation/native';
 const Bg = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
   colors: ['#FFF7FF', '#F6F0FF'],
   start: { x: 0, y: 0 }, end: { x: 0, y: 1 },
-}))`
-  flex: 1;
-`;
+}))` flex: 1; `;
 
-const nav = useNavigation();
-<View style={{ alignItems: 'center', marginTop: 14, gap: 6 }}>
-  <Muted>아직 계정이 없으신가요?</Muted>
-  <Pressable onPress={() => nav.navigate('Register' as never)}>
-    <Link>회원가입하기</Link>
-  </Pressable>
-  <Muted style={{ marginTop: 4 }}>비밀번호를 잊으셨나요?</Muted>
-</View>
-
-const Page = styled(SafeAreaView)`
-  flex: 1;
-  padding: 20px 16px;
-  justify-content: center;
-`;
-
-const Center = styled.View`
-  align-items: center;
-  margin-bottom: 18px;
-`;
-
+const Page = styled(SafeAreaView)` flex: 1; padding: 20px 16px; justify-content: center; `;
+const Center = styled.View` align-items: center; margin-bottom: 18px; `;
 const AppMark = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
   colors: [p.theme.colors.gradientFrom, p.theme.colors.gradientTo],
   start: { x: 0, y: 0 }, end: { x: 1, y: 1 },
-}))`
-  width: 64px; height: 64px; border-radius: 16px;
-  align-items: center; justify-content: center;
-`;
+}))` width: 64px; height: 64px; border-radius: 16px; align-items: center; justify-content: center; `;
+const AppMarkText = styled.Text` color: #fff; font-weight: 800; font-size: 20px; `;
+const AppTitle = styled.Text` margin-top: 16px; color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text}; font-size: 28px; font-weight: 900; `;
+const AppSub = styled.Text` color: ${(p: { theme: DefaultTheme }) => p.theme.colors.muted}; margin-top: 6px; `;
 
-const AppMarkText = styled.Text`
-  color: #fff; font-weight: 800; font-size: 20px;
-`;
+const Card = styled.View` background: ${(p: { theme: DefaultTheme }) => p.theme.colors.surface}; border-radius: 18px; padding: 18px; `;
+const CardTitleRow = styled.View` align-items: center; gap: 6px; margin-bottom: 8px; `;
+const Title = styled.Text` color: #6e56cf; font-weight: 900; font-size: 16px; `;
+const Subtitle = styled.Text` color: ${(p: { theme: DefaultTheme }) => p.theme.colors.muted}; font-size: 13px; text-align: center; `;
 
-const AppTitle = styled.Text`
-  margin-top: 16px;
-  color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text};
-  font-size: 28px; font-weight: 900;
-`;
-
-const AppSub = styled.Text`
-  color: ${(p: { theme: DefaultTheme }) => p.theme.colors.muted};
-  margin-top: 6px;
-`;
-
-const Card = styled.View`
-  background: ${(p: { theme: DefaultTheme }) => p.theme.colors.surface};
-  border-radius: 18px;
-  padding: 18px;
-`;
-
-const CardTitleRow = styled.View`
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-`;
-
-const Title = styled.Text`
-  color: #6e56cf; font-weight: 900; font-size: 16px;
-`;
-
-const Subtitle = styled.Text`
-  color: ${(p: { theme: DefaultTheme }) => p.theme.colors.muted};
-  font-size: 13px; text-align: center;
-`;
-
-const Label = styled.Text`
-  color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text};
-  font-weight: 800; margin: 12px 0 6px;
-`;
-
-const InputRow = styled.View`
-  background: #f4f4f7;
-  border-radius: 12px;
-  padding: 12px;
-  flex-direction: row; align-items: center; gap: 10px;
-`;
-
-const TextInput = styled.TextInput`
-  flex: 1; color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text};
-`;
-
+const Label = styled.Text` color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text}; font-weight: 800; margin: 12px 0 6px; `;
+const InputRow = styled.View` background: #f4f4f7; border-radius: 12px; padding: 12px; flex-direction: row; align-items: center; gap: 10px; `;
+const TextInput = styled.TextInput` flex: 1; color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text}; `;
 const EyeBtn = styled.Pressable` padding: 4px; `;
 
 const GBtn = styled.Pressable``;
-
 const GFill = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
   colors: [p.theme.colors.gradientFrom, p.theme.colors.gradientTo],
   start: { x: 0, y: 0 }, end: { x: 1, y: 1 },
-}))`
-  height: 44px; border-radius: 12px;
-  align-items: center; justify-content: center;
-`;
-
+}))` height: 44px; border-radius: 12px; align-items: center; justify-content: center; `;
 const GText = styled.Text` color: #fff; font-weight: 800; `;
 
 const Link = styled.Text` color: #6e56cf; font-weight: 700; `;
 const Muted = styled.Text` color: #9aa0a6; `;
 
-const DemoCard = styled.View`
-  background: #eef3ff;
-  border-radius: 16px;
-  padding: 16px;
-  margin-top: 14px;
-  border: 1px solid #cfe0ff;
-`;
-
-const DemoBtn = styled.Pressable`
-  background: #ffffff; border: 1px solid #dbe2ff;
-  padding: 10px 14px; border-radius: 10px; align-self: center; margin-top: 10px;
-`;
-
+const DemoCard = styled.View` background: #eef3ff; border-radius: 16px; padding: 16px; margin-top: 14px; border: 1px solid #cfe0ff; `;
+const DemoBtn = styled.Pressable` background: #ffffff; border: 1px solid #dbe2ff; padding: 10px 14px; border-radius: 10px; align-self: center; margin-top: 10px; `;
 const DemoText = styled.Text` color: #3b57f0; font-weight: 800; `;
 
 export default function LoginScreen() {
   const { isLoading, signIn } = useAuth();
+  const nav = useNavigation();                // ✅ 여기에서 훅 호출
   const [email, setEmail] = useState('');
-  const [pw, setPw] = useState('');
+  theconst [pw, setPw] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
 
@@ -193,9 +114,12 @@ export default function LoginScreen() {
               <GFill><GText>{isLoading ? '로그인 중...' : '로그인'}</GText></GFill>
             </GBtn>
 
+            {/* ✅ 이 블록은 컴포넌트 내부에 있어야 함 */}
             <View style={{ alignItems: 'center', marginTop: 14, gap: 6 }}>
               <Muted>아직 계정이 없으신가요?</Muted>
-              <Link>회원가입하기</Link>
+              <Pressable onPress={() => nav.navigate('Register' as never)}>
+                <Link>회원가입하기</Link>
+              </Pressable>
               <Muted style={{ marginTop: 4 }}>비밀번호를 잊으셨나요?</Muted>
             </View>
           </Card>

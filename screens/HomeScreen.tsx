@@ -1,13 +1,12 @@
 // screens/HomeScreen.tsx
 import React from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { DefaultTheme } from 'styled-components/native';
 import appTheme from '../src/styles/theme';
-import { Pressable } from 'react-native';
 import { useAuth } from '../src/context/AuthContext';
 
 const Page = styled(SafeAreaView)`
@@ -15,19 +14,6 @@ const Page = styled(SafeAreaView)`
   background-color: ${(p: { theme: DefaultTheme }) => p.theme.colors.background};
 `;
 
-const { signOut } = useAuth();
-
-<HeaderRight>
-  <Streak>
-    <Ionicons name="flame" size={14} color="#2B7A0B" />
-    <StreakText>7일 연속</StreakText>
-  </Streak>
-  {/* 알림 아이콘을 유지하고, 프로필 아이콘 대신 로그아웃 */}
-  <Ionicons name="notifications-outline" size={22} color="#121212" />
-  <Pressable onPress={signOut} hitSlop={10}>
-    <Ionicons name="log-out-outline" size={24} color="#121212" />
-  </Pressable>
-</HeaderRight>
 const Container = styled(ScrollView)`
   flex: 1;
   padding: 12px 16px 24px 16px;
@@ -253,6 +239,8 @@ const Chip = styled.Text<ChipProps>`
 `;
 
 export default function HomeScreen() {
+  const { signOut } = useAuth(); // ✅ 훅은 컴포넌트 내부에서
+
   return (
     <Page>
       <Container contentContainerStyle={{ paddingBottom: 40 }}>
@@ -274,7 +262,10 @@ export default function HomeScreen() {
               <StreakText>7일 연속</StreakText>
             </Streak>
             <Ionicons name="notifications-outline" size={22} color="#121212" />
-            <Ionicons name="person-circle-outline" size={26} color="#121212" />
+            {/* 프로필 아이콘 대신 로그아웃 */}
+            <Pressable onPress={signOut} hitSlop={10}>
+              <Ionicons name="log-out-outline" size={24} color="#121212" />
+            </Pressable>
           </HeaderRight>
         </Header>
 
@@ -283,12 +274,9 @@ export default function HomeScreen() {
           <HeroRow>
             <View
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
+                width: 36, height: 36, borderRadius: 18,
                 backgroundColor: 'rgba(255,255,255,0.25)',
-                alignItems: 'center',
-                justifyContent: 'center',
+                alignItems: 'center', justifyContent: 'center',
               }}
             >
               <Ionicons name="flash" size={20} color="#fff" />

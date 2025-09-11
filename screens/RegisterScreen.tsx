@@ -42,11 +42,14 @@ const GoalGrid = styled.View` flex-direction: row; flex-wrap: wrap; gap: 12px; `
 const GoalBtn = styled.Pressable<{ active?: boolean }>`
   flex: 1; min-width: 46%;
   border-radius: 12px; padding: 14px;
-  background: ${(p) => (p.active ? '#F3EFFF' : '#FFFFFF')};
-  border-width: 1px; border-color: ${(p) => (p.active ? '#6E56CF' : '#E5E7F0')};
+  background: ${(p: { active?: boolean }) => (p.active ? '#F3EFFF' : '#FFFFFF')};
+  border-width: 1px; border-color: ${(p: { active?: boolean }) => (p.active ? '#6E56CF' : '#E5E7F0')};
   align-items: center; gap: 6px;
 `;
-const GoalText = styled.Text<{ active?: boolean }>` color: ${(p) => (p.active ? '#6E56CF' : '#333')}; font-weight: 700; `;
+const GoalText = styled.Text<{ active?: boolean }>`
+  color: ${(p: { active?: boolean }) => (p.active ? '#6E56CF' : '#333')};
+  font-weight: 700;
+`;
 
 const Grid3 = styled.View` flex-direction: row; gap: 10px; margin-top: 10px; `;
 const NumBox = styled(InputRow)` flex: 1; `;
