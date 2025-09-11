@@ -1,11 +1,14 @@
 // App.tsx
 import React, { useEffect } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MainTabs from './stack/MainTabs';
 import { ThemeProvider } from 'styled-components/native';
 import theme from './src/styles/theme';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import * as NavigationBar from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
+import LoginScreen from './screens/LoginScreen';
 
 const MyTheme = {
   ...DefaultTheme,
@@ -19,29 +22,46 @@ const MyTheme = {
   },
 };
 
+type RootStackParamList = { Login: undefined; Main: undefined };
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+function RootNavigator() {
+  const { isLoading, isSignedIn } = useAuth();
+
+  if (isLoading) {
+    return null; // 필요하면 스플래시 넣기
+  }
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {isSignedIn ? (
+        <Stack.Screen name="Main" component={MainTabs} />
+      ) : (
+        <Stack.Screen name="Login" component={LoginScreen} />
+      )}
+    </Stack.Navigator>
+  );
+}
+
 export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        // 완전 몰입형: 내비게이션 바 숨기고 스와이프로만 잠깐 나타남
-        await NavigationBar.setVisibilityAsync('hidden'); // 'hidden' 도 가능
-        await NavigationBar.setBehaviorAsync('overlay-swipe'); // 콘텐츠를 가리지 않게
+        await NavigationBar.setVisibilityAsync('hidden');
+        await NavigationBar.setBehaviorAsync('overlay-swipe');
         await NavigationBar.setBackgroundColorAsync('transparent');
-        // 상단 상태바(시계/배터리)는 숨기고 싶으면 아래 주석 해제
-        // StatusBar.setHidden(true, 'fade');
-      } catch (e) {
-        console.warn('NavigationBar config failed', e);
-      }
+      } catch {}
     })();
   }, []);
 
   return (
-    <ThemeProvider theme={theme}>
-      {/* 상태바를 숨기지 않을 거면 style만 지정 */}
-      <StatusBar style="dark" translucent backgroundColor="transparent" />
-      <NavigationContainer theme={MyTheme}>
-        <MainTabs />
-      </NavigationContainer>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider theme={theme}>
+        <StatusBar style="dark" translucent backgroundColor="transparent" />
+        <NavigationContainer theme={MyTheme}>
+          <RootNavigator />
+        </NavigationContainer>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
