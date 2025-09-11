@@ -52,7 +52,7 @@ export default function LoginScreen() {
   const { isLoading, signIn } = useAuth();
   const nav = useNavigation();                // ✅ 여기에서 훅 호출
   const [email, setEmail] = useState('');
-  theconst [pw, setPw] = useState('');
+  const [pw, setPw] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
 
