@@ -1,10 +1,22 @@
 import React from 'react';
 import { ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
+import type { DefaultTheme } from 'styled-components/native';
 
-const Container = styled(ScrollView)`
+const Page = styled(SafeAreaView)`
   flex: 1;
-  padding: 20px 16px;
+  background-color: ${(p: { theme: DefaultTheme }) => p.theme.colors.background};
+`;
+
+const Container = styled(ScrollView).attrs({
+  contentContainerStyle: {
+    paddingTop: 20,        // ✅ 상단 여백 (식단탭과 동일)
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+})`
+  flex: 1;
 `;
 
 const Banner = styled.View`
@@ -81,35 +93,37 @@ const BtnText = styled.Text`
 
 export default function WorkoutScreen() {
   return (
-    <Container>
-      <Banner>
-        <BannerRow>
-          <BannerTitle>오늘의 운동</BannerTitle>
-          <Percent>17% 완료</Percent>
-        </BannerRow>
-        <Sub>전신 근력 운동 · 45분</Sub>
-        <Bar><Fill /></Bar>
-      </Banner>
+    <Page>
+      <Container>
+        <Banner>
+          <BannerRow>
+            <BannerTitle>오늘의 운동</BannerTitle>
+            <Percent>17% 완료</Percent>
+          </BannerRow>
+          <Sub>전신 근력 운동 · 45분</Sub>
+          <Bar><Fill /></Bar>
+        </Banner>
 
-      <Section>
-        <BannerTitle style={{ color: '#121212' }}>이번 주 운동 현황</BannerTitle>
-        <Sub style={{ color: '#7a7a90', marginTop: 8 }}>월·화 완료, 수 진행 중</Sub>
-      </Section>
-
-      {[
-        { title: '1. 워업', items: ['팔돌리기', '어깨 스트레칭', '무릎 들기'] },
-        { title: '2. 상체 근력', items: ['푸시업', '랫풀다운', '덤벨컬'] },
-      ].map(({ title, items }) => (
-        <Section key={title}>
-          <BannerTitle style={{ color: '#121212' }}>{title}</BannerTitle>
-          {items.map((name) => (
-            <Item key={name}>
-              <Sub style={{ color: '#121212' }}>{name} · 30초</Sub>
-              <Btn><BtnText>시작</BtnText></Btn>
-            </Item>
-          ))}
+        <Section>
+          <BannerTitle style={{ color: '#121212' }}>이번 주 운동 현황</BannerTitle>
+          <Sub style={{ color: '#7a7a90', marginTop: 8 }}>월·화 완료, 수 진행 중</Sub>
         </Section>
-      ))}
-    </Container>
+
+        {[
+          { title: '1. 워업', items: ['팔돌리기', '어깨 스트레칭', '무릎 들기'] },
+          { title: '2. 상체 근력', items: ['푸시업', '랫풀다운', '덤벨컬'] },
+        ].map(({ title, items }) => (
+          <Section key={title}>
+            <BannerTitle style={{ color: '#121212' }}>{title}</BannerTitle>
+            {items.map((name) => (
+              <Item key={name}>
+                <Sub style={{ color: '#121212' }}>{name} · 30초</Sub>
+                <Btn><BtnText>시작</BtnText></Btn>
+              </Item>
+            ))}
+          </Section>
+        ))}
+      </Container>
+    </Page>
   );
 }
