@@ -247,7 +247,6 @@ export default function RegisterScreen() {
                   <Ionicons name={showPw ? 'eye' : 'eye-off'} size={18} color="#6E56CF" />
                 </EyeBtn>
               </InputRow>
-              <Help>목표를 고르면 아래에 신체 정보 입력(선택)이 나타나요.</Help>
 
               {/* 건강 목표 */}
               <Label style={{ marginTop: 14 }}>건강 목표</Label>
@@ -274,7 +273,7 @@ export default function RegisterScreen() {
               {goal !== undefined ? (
                 <Animated.View style={[{ marginTop: 14 }, sectionStyle]}>
                   <Label>신체 정보 (선택)</Label>
-                  <Help>입력 안 해도 가입 가능해. 나중에 프로필에서 수정할 수 있어.</Help>
+                  <Help>신체정보는 나중에 프로필에서 변경 가능합니다!</Help>
                   <Grid3>
                     <View style={{ flex: 1 }}>
                       <Label>키 (cm)</Label>
