@@ -1,4 +1,8 @@
-// screens/RegisterScreen.tsx (goal grid vanish fix + animations intact)
+// screens/RegisterScreen.tsx
+// - TS7006 fix: onChangeText 파라미터에 (v: string) 명시
+// - 필드별 유효성 검사 + 에러 텍스트/테두리 강조
+// - 목표 선택 시 신체정보 섹션 애니메이션 등장
+// - 비번 재입력 없음, 신체정보는 선택 입력
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -23,7 +27,7 @@ import { useNavigation } from '@react-navigation/native';
 /* ---------- Layout / UI ---------- */
 const Bg = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
   colors: ['#FFF7FF', '#F6F0FF'],
-  start: { x: 0, y: 0 }, end: { x: 1, y: 1 },
+  start: { x: 0, y: 0 }, end: { x: 0, y: 1 },
 }))` flex: 1; `;
 
 const Page = styled(SafeAreaView)` flex: 1; `;
@@ -57,7 +61,19 @@ const Subtitle = styled.Text` color: ${(p: { theme: DefaultTheme }) => p.theme.c
 
 const Label = styled.Text` color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text}; font-weight: 800; margin: 12px 0 6px; `;
 const Help = styled.Text` color: #9aa0a6; font-size: 12px; margin-top: 2px; `;
-const InputRow = styled.View` background: #f4f4f7; border-radius: 12px; padding: 12px; flex-direction: row; align-items: center; gap: 10px; `;
+const ErrorText = styled.Text` color: #ef4444; font-size: 12px; margin-top: 6px; `;
+
+type Errorable = { $error?: boolean };
+const InputRow = styled.View<Errorable>`
+  background: #f4f4f7;
+  border-radius: 12px;
+  padding: 12px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  border-width: 1px;
+  border-color: ${({ $error }: Errorable) => ($error ? '#ef4444' : 'transparent')};
+`;
 const TextInput = styled.TextInput` flex: 1; color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text}; `;
 const EyeBtn = styled.Pressable` padding: 4px; `;
 
@@ -66,7 +82,6 @@ type GoalTP = { $active?: boolean };
 
 const GoalGrid = styled.View` flex-direction: row; flex-wrap: wrap; gap: 12px; `;
 
-/* 래퍼가 그리드의 직접 자식이라 폭을 가져야 함 */
 const GoalWrap = styled(Animated.View)`
   flex: 1;
   min-width: 48%;
@@ -108,6 +123,16 @@ const GOAL_OPTIONS = [
 ] as const;
 type GoalKey = typeof GOAL_OPTIONS[number]['key'];
 
+/* ---------- Helpers ---------- */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const hasLetter = /[A-Za-z]/;
+const hasNumber = /[0-9]/;
+
+function parseNum(v: string) {
+  const n = Number(v.replace(',', '.'));
+  return Number.isFinite(n) ? n : NaN;
+}
+
 /* ---------- Screen ---------- */
 export default function RegisterScreen() {
   const { register, isLoading } = useAuth();
@@ -115,16 +140,26 @@ export default function RegisterScreen() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+
   const [pw, setPw] = useState('');
   const [showPw, setShowPw] = useState(false);
 
-  // 초기엔 목표 미선택 → 신체정보 섹션 숨김
   const [goal, setGoal] = useState<GoalKey | undefined>(undefined);
 
   // 선택 입력: 비워두고 가이드
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [targetWeight, setTargetWeight] = useState('');
+
+  type Errors = Partial<{
+    name: string;
+    email: string;
+    password: string;
+    height: string;
+    weight: string;
+    targetWeight: string;
+  }>;
+  const [errors, setErrors] = useState<Errors>({});
 
   /* ---- 신체정보 섹션 애니메이션 ---- */
   const sectionAnim = useRef(new Animated.Value(0)).current;
@@ -142,7 +177,7 @@ export default function RegisterScreen() {
     transform: [{ translateY: sectionAnim.interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }],
   } as const;
 
-  /* ---- 목표 카드 스프링 애니메이션 ---- */
+  /* ---- 목표 카드 스프링 ---- */
   const goalAnimsRef = useRef<Record<GoalKey, Animated.Value>>(
     GOAL_OPTIONS.reduce((acc, cur) => {
       acc[cur.key] = new Animated.Value(0);
@@ -162,24 +197,65 @@ export default function RegisterScreen() {
     });
   }, [goal, goalAnims]);
 
+  /* ---- Submit ---- */
   const onSubmit = () => {
-    if (!name || !email || !pw) {
-      return Alert.alert('안내', '이름/이메일/비밀번호는 필수 입력 항목입니다.');
+    const next: Errors = {};
+
+    if (!name.trim()) {
+      next.name = '이름을 입력해주세요.';
     }
-    const h = Number(height), w = Number(weight), t = Number(targetWeight);
+    if (!email.trim()) {
+      next.email = '이메일을 입력해주세요.';
+    } else if (!EMAIL_RE.test(email.trim())) {
+      next.email = '이메일 형식이 올바르지 않아요.';
+    }
+    if (!pw) {
+      next.password = '비밀번호를 입력해주세요.';
+    } else if (pw.length < 8 || !hasLetter.test(pw) || !hasNumber.test(pw)) {
+      next.password = '8자 이상, 영문과 숫자를 포함해 주세요.';
+    }
+
+    // 선택 입력 검증: 값이 있을 때만 체크
+    if (height.trim()) {
+      const h = parseNum(height);
+      if (Number.isNaN(h)) next.height = '숫자만 입력해 주세요.';
+      else if (h < 100 || h > 250) next.height = '키는 100–250cm 사이로 입력해 주세요.';
+    }
+    if (weight.trim()) {
+      const w = parseNum(weight);
+      if (Number.isNaN(w)) next.weight = '숫자만 입력해 주세요.';
+      else if (w < 30 || w > 250) next.weight = '현재 체중은 30–250kg 사이가 좋아요.';
+    }
+    if (targetWeight.trim()) {
+      const t = parseNum(targetWeight);
+      if (Number.isNaN(t)) next.targetWeight = '숫자만 입력해 주세요.';
+      else if (t < 20 || t > 300) next.targetWeight = '목표 체중은 20–300kg 사이로 입력해 주세요.';
+    }
+
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      return;
+    }
+
+    const h = parseNum(height), w = parseNum(weight), t = parseNum(targetWeight);
 
     register(
       {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim(),
         password: pw,
-        goal, // 선택값(없어도 가입 가능)
-        height: isFinite(h) ? h : undefined,
-        weight: isFinite(w) ? w : undefined,
-        targetWeight: isFinite(t) ? t : undefined,
+        goal, // 선택
+        height: height.trim() ? (Number.isNaN(h) ? undefined : h) : undefined,
+        weight: weight.trim() ? (Number.isNaN(w) ? undefined : w) : undefined,
+        targetWeight: targetWeight.trim() ? (Number.isNaN(t) ? undefined : t) : undefined,
       },
       false
     );
+  };
+
+  // 변경 시 해당 오류 제거
+  const clearErr = (k: keyof Errors) => () => {
+    if (errors[k]) setErrors((e) => ({ ...e, [k]: undefined }));
   };
 
   return (
@@ -206,20 +282,21 @@ export default function RegisterScreen() {
 
               {/* 이름 */}
               <Label>이름</Label>
-              <InputRow>
+              <InputRow $error={!!errors.name}>
                 <Ionicons name="person-outline" size={16} color="#6E56CF" />
                 <TextInput
                   placeholder="이름을 입력하세요"
                   placeholderTextColor="#AAB0BC"
                   value={name}
-                  onChangeText={setName}
+                  onChangeText={(v: string) => { setName(v); if (errors.name) clearErr('name')(); }}
                   returnKeyType="next"
                 />
               </InputRow>
+              {errors.name ? <ErrorText>{errors.name}</ErrorText> : null}
 
               {/* 이메일 */}
               <Label>이메일</Label>
-              <InputRow>
+              <InputRow $error={!!errors.email}>
                 <Ionicons name="mail-outline" size={16} color="#6E56CF" />
                 <TextInput
                   placeholder="이메일을 입력하세요"
@@ -227,26 +304,28 @@ export default function RegisterScreen() {
                   autoCapitalize="none"
                   keyboardType="email-address"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(v: string) => { setEmail(v); if (errors.email) clearErr('email')(); }}
                   returnKeyType="next"
                 />
               </InputRow>
+              {errors.email ? <ErrorText>{errors.email}</ErrorText> : null}
 
               {/* 비밀번호 */}
               <Label>비밀번호</Label>
-              <InputRow>
+              <InputRow $error={!!errors.password}>
                 <Ionicons name="lock-closed-outline" size={16} color="#6E56CF" />
                 <TextInput
                   placeholder="8자 이상, 영문/숫자 조합을 권장해요"
                   placeholderTextColor="#AAB0BC"
                   secureTextEntry={!showPw}
                   value={pw}
-                  onChangeText={setPw}
+                  onChangeText={(v: string) => { setPw(v); if (errors.password) clearErr('password')(); }}
                 />
                 <EyeBtn onPress={() => setShowPw((v) => !v)}>
                   <Ionicons name={showPw ? 'eye' : 'eye-off'} size={18} color="#6E56CF" />
                 </EyeBtn>
               </InputRow>
+              {errors.password ? <ErrorText>{errors.password}</ErrorText> : <Help>목표를 고르면 아래에 신체 정보 입력(선택)이 나타나요.</Help>}
 
               {/* 건강 목표 */}
               <Label style={{ marginTop: 14 }}>건강 목표</Label>
@@ -269,47 +348,50 @@ export default function RegisterScreen() {
                 })}
               </GoalGrid>
 
-              {/* 신체 정보 섹션: 목표 선택 시에만 애니메이션 등장 */}
+              {/* 신체 정보 섹션: 목표 선택 시에만 애니메이션 등장 (선택 입력) */}
               {goal !== undefined ? (
                 <Animated.View style={[{ marginTop: 14 }, sectionStyle]}>
                   <Label>신체 정보 (선택)</Label>
-                  <Help>신체정보는 나중에 프로필에서 변경 가능합니다!</Help>
+                  <Help>입력 안 해도 가입 가능해요. 나중에 프로필에서 수정할 수 있어요.</Help>
                   <Grid3>
                     <View style={{ flex: 1 }}>
                       <Label>키 (cm)</Label>
-                      <NumBox>
+                      <NumBox $error={!!errors.height}>
                         <TextInput
                           keyboardType="numeric"
                           value={height}
-                          onChangeText={setHeight}
+                          onChangeText={(v: string) => { setHeight(v); if (errors.height) clearErr('height')(); }}
                           placeholder="예: 170"
                           placeholderTextColor="#AAB0BC"
                         />
                       </NumBox>
+                      {errors.height ? <ErrorText>{errors.height}</ErrorText> : null}
                     </View>
                     <View style={{ flex: 1 }}>
                       <Label>현재 체중 (kg)</Label>
-                      <NumBox>
+                      <NumBox $error={!!errors.weight}>
                         <TextInput
                           keyboardType="numeric"
                           value={weight}
-                          onChangeText={setWeight}
+                          onChangeText={(v: string) => { setWeight(v); if (errors.weight) clearErr('weight')(); }}
                           placeholder="예: 70"
                           placeholderTextColor="#AAB0BC"
                         />
                       </NumBox>
+                      {errors.weight ? <ErrorText>{errors.weight}</ErrorText> : null}
                     </View>
                     <View style={{ flex: 1 }}>
                       <Label>목표 체중 (kg)</Label>
-                      <NumBox>
+                      <NumBox $error={!!errors.targetWeight}>
                         <TextInput
                           keyboardType="numeric"
                           value={targetWeight}
-                          onChangeText={setTargetWeight}
+                          onChangeText={(v: string) => { setTargetWeight(v); if (errors.targetWeight) clearErr('targetWeight')(); }}
                           placeholder="예: 65"
                           placeholderTextColor="#AAB0BC"
                         />
                       </NumBox>
+                      {errors.targetWeight ? <ErrorText>{errors.targetWeight}</ErrorText> : null}
                     </View>
                   </Grid3>
                 </Animated.View>
