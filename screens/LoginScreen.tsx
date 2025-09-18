@@ -1,5 +1,16 @@
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, Switch, View } from 'react-native';
+// screens/LoginScreen.tsx (drop-in: empty-fields modal + dim backdrop + animation)
+
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Switch,
+  View,
+  Animated,
+  Modal,
+  Easing,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 import type { DefaultTheme } from 'styled-components/native';
@@ -9,6 +20,7 @@ import { useAuth } from '../src/context/AuthContext';
 import appTheme from '../src/styles/theme';
 import { useNavigation } from '@react-navigation/native';
 
+/* ---------- Layout ---------- */
 const Bg = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
   colors: ['#FFF7FF', '#F6F0FF'],
   start: { x: 0, y: 0 }, end: { x: 0, y: 1 },
@@ -44,19 +56,69 @@ const GText = styled.Text` color: #fff; font-weight: 800; `;
 const Link = styled.Text` color: #6e56cf; font-weight: 700; `;
 const Muted = styled.Text` color: #9aa0a6; `;
 
-const DemoCard = styled.View` background: #eef3ff; border-radius: 16px; padding: 16px; margin-top: 14px; border: 1px solid #cfe0ff; `;
-const DemoBtn = styled.Pressable` background: #ffffff; border: 1px solid #dbe2ff; padding: 10px 14px; border-radius: 10px; align-self: center; margin-top: 10px; `;
-const DemoText = styled.Text` color: #3b57f0; font-weight: 800; `;
+/* ---------- Modal Styles ---------- */
+const Backdrop = styled(Pressable)` position: absolute; inset: 0; background-color: rgba(0,0,0,0.45); `;
+const ModalCard = styled(Animated.View)`
+  width: 86%;
+  max-width: 420px;
+  align-self: center;
+  border-radius: 18px;
+  padding: 18px;
+  background: #ffffff;
+  overflow: hidden;
+`;
+const ModalIconWrap = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
+  colors: [p.theme.colors.gradientFrom, p.theme.colors.gradientTo],
+  start: { x: 0, y: 0 }, end: { x: 1, y: 1 },
+}))` width: 56px; height: 56px; border-radius: 28px; align-items: center; justify-content: center; align-self: center; `;
+const ModalTitle = styled.Text` margin-top: 12px; font-weight: 900; font-size: 18px; text-align: center; color: #222; `;
+const ModalDesc = styled.Text` margin-top: 6px; font-size: 13px; line-height: 18px; text-align: center; color: #6b7280; `;
+const ModalBtn = styled(Pressable)` margin-top: 14px; align-self: center; width: 100%; `;
+const ModalBtnFill = styled(GFill)` height: 42px; `;
+const Spacer = styled.View` height: 10px; `;
 
 export default function LoginScreen() {
   const { isLoading, signIn } = useAuth();
-  const nav = useNavigation();                // ✅ 여기에서 훅 호출
+  const nav = useNavigation();
+
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [showPw, setShowPw] = useState(false);
-  const [remember, setRemember] = useState(true);
+  // ✅ 기본값 false 유지
+  const [remember, setRemember] = useState(false);
 
-  const onLogin = () => signIn(email.trim(), pw, remember);
+  // ----- modal animation -----
+  const [showEmptyModal, setShowEmptyModal] = useState(false);
+  const overlayAnim = useRef(new Animated.Value(0)).current;  // 0~1
+  const scaleAnim = useRef(new Animated.Value(0.96)).current; // 0.96 -> 1
+
+  const openEmptyModal = () => {
+    setShowEmptyModal(true);
+    overlayAnim.setValue(0);
+    scaleAnim.setValue(0.96);
+    Animated.parallel([
+      Animated.timing(overlayAnim, { toValue: 1, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 7, tension: 120, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const closeEmptyModal = () => {
+    Animated.parallel([
+      Animated.timing(overlayAnim, { toValue: 0, duration: 120, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.96, duration: 120, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]).start(({ finished }) => { if (finished) setShowEmptyModal(false); });
+  };
+
+  const overlayStyle = useMemo(() => ({ opacity: overlayAnim }), [overlayAnim]);
+  const cardStyle = useMemo(() => ({ transform: [{ scale: scaleAnim }] }), [scaleAnim]);
+
+  const onLogin = () => {
+    if (!email.trim() || !pw) {
+      openEmptyModal();
+      return;
+    }
+    signIn(email.trim(), pw, remember);
+  };
 
   return (
     <Bg>
@@ -73,7 +135,7 @@ export default function LoginScreen() {
               <Ionicons name="sparkles" size={18} color="#6E56CF" />
               <Title>로그인</Title>
             </CardTitleRow>
-            <Subtitle>다시 만나서 반가워요!</Subtitle>
+            <Subtitle>만나서 반가워요!</Subtitle>
 
             <Label>이메일</Label>
             <InputRow>
@@ -114,7 +176,6 @@ export default function LoginScreen() {
               <GFill><GText>{isLoading ? '로그인 중...' : '로그인'}</GText></GFill>
             </GBtn>
 
-            {/* ✅ 이 블록은 컴포넌트 내부에 있어야 함 */}
             <View style={{ alignItems: 'center', marginTop: 14, gap: 6 }}>
               <Muted>아직 계정이 없으신가요?</Muted>
               <Pressable onPress={() => nav.navigate('Register' as never)}>
@@ -123,15 +184,40 @@ export default function LoginScreen() {
               <Muted style={{ marginTop: 4 }}>비밀번호를 잊으셨나요?</Muted>
             </View>
           </Card>
-
-          <DemoCard style={appTheme.shadow.card}>
-            <Muted style={{ textAlign: 'center' }}>빠른 체험을 위한 데모 로그인</Muted>
-            <DemoBtn onPress={() => signIn('demo@fitmind.ai', '1234', true)}>
-              <DemoText>체험하기</DemoText>
-            </DemoBtn>
-          </DemoCard>
         </Page>
       </KeyboardAvoidingView>
+
+      {/* ---------- Empty fields modal ---------- */}
+      <Modal
+        visible={showEmptyModal}
+        transparent
+        animationType="none"  // 직접 애니메이션 제어
+        statusBarTranslucent
+        onRequestClose={closeEmptyModal}
+      >
+        <Animated.View style={[{ flex: 1 }, overlayStyle]}>
+          <Backdrop onPress={closeEmptyModal} />
+        </Animated.View>
+
+        <View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'center' }}>
+          <ModalCard style={cardStyle}>
+            <ModalIconWrap>
+              <Ionicons name="alert-circle" size={26} color="#fff" />
+            </ModalIconWrap>
+            <ModalTitle>로그인 실패</ModalTitle>
+            <ModalDesc>
+              이메일과 비밀번호를 모두 입력해주세요.{'\n'}
+              건강한 다짐을 위해 정확한 정보가 필요해요! 💪
+            </ModalDesc>
+            <ModalBtn onPress={closeEmptyModal}>
+              <ModalBtnFill>
+                <GText>확인</GText>
+              </ModalBtnFill>
+            </ModalBtn>
+            <Spacer />
+          </ModalCard>
+        </View>
+      </Modal>
     </Bg>
   );
 }
