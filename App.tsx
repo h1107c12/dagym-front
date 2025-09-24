@@ -1,6 +1,6 @@
 // App.tsx
 import React, { useEffect } from 'react';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme as NavDefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ThemeProvider } from 'styled-components/native';
 import * as NavigationBar from 'expo-navigation-bar';
@@ -11,11 +11,15 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import MainTabs from './stack/MainTabs';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
+import SettingsScreen from './screens/SettingsScreen';          // ✅ 설정
+import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen'; // ✅ 개인정보 보호
+import HelpScreen from './screens/HelpScreen';                   // ✅ 도움말 및 지원
 
+// react-navigation 테마를 앱 테마에 맞게 매핑
 const MyTheme = {
-  ...DefaultTheme,
+  ...NavDefaultTheme,
   colors: {
-    ...DefaultTheme.colors,
+    ...NavDefaultTheme.colors,
     background: theme.colors.background,
     primary: theme.colors.primary,
     card: theme.colors.surface,
@@ -24,8 +28,16 @@ const MyTheme = {
   },
 };
 
-// ✅ 단 한 번만 선언
-type RootStackParamList = { Login: undefined; Register: undefined; Main: undefined };
+// ✅ 전역 스택 타입 — Settings/PrivacyPolicy/Help 추가
+export type RootStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  Main: undefined;
+  Settings: undefined;
+  PrivacyPolicy: undefined;
+  Help: undefined;
+};
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function RootNavigator() {
@@ -35,7 +47,43 @@ function RootNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isSignedIn ? (
-        <Stack.Screen name="Main" component={MainTabs} />
+        <>
+          {/* 메인 탭 */}
+          <Stack.Screen name="Main" component={MainTabs} />
+
+          {/* 설정: 전역에서 모달처럼 오픈 */}
+          <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              headerShown: false,
+            }}
+          />
+
+          {/* 개인정보 보호: 설정 내에서 푸시 네비게이션 */}
+          <Stack.Screen
+            name="PrivacyPolicy"
+            component={PrivacyPolicyScreen}
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_right',
+              headerShown: false,
+            }}
+          />
+
+          {/* 도움말 및 지원: 설정 내에서 푸시 네비게이션 */}
+          <Stack.Screen
+            name="Help"
+            component={HelpScreen}
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_right',
+              headerShown: false,
+            }}
+          />
+        </>
       ) : (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -53,7 +101,9 @@ export default function App() {
         await NavigationBar.setVisibilityAsync('hidden');
         await NavigationBar.setBehaviorAsync('overlay-swipe');
         await NavigationBar.setBackgroundColorAsync('transparent');
-      } catch {}
+      } catch {
+        // noop
+      }
     })();
   }, []);
 

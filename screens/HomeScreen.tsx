@@ -1,13 +1,14 @@
 // screens/HomeScreen.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, View, Pressable, Modal, Alert, Animated } from 'react-native';
+import { ScrollView, View, Pressable, Modal, Alert, Animated, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import styled, { useTheme } from 'styled-components/native';
+import styled from 'styled-components/native';
 import type { DefaultTheme } from 'styled-components/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import appTheme from '../src/styles/theme';
 import { useAuth } from '../src/context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
 /* ---------- types ---------- */
 type TTheme = { theme: DefaultTheme };
@@ -55,25 +56,6 @@ const Streak = styled.View`
 `;
 const StreakText = styled.Text` color:#2b7a0b; font-weight:700; font-size:12px; `;
 
-/* ---------- top controls (search + theme) ---------- */
-const TopControls = styled.View`
-  flex-direction: row; align-items: center; gap: 10px; margin-bottom: 12px;
-`;
-const Search = styled.Pressable`
-  flex: 1; background: #f3f4f7; border-radius: 999px; padding: 10px 14px;
-  flex-direction: row; align-items: center; gap: 8px;
-`;
-const SearchText = styled.Text` color:#9aa0a6; font-size:13px; `;
-const IconBtn = styled.Pressable`
-  width: 36px; height: 36px; border-radius: 10px; background:#f3f4f7; align-items:center; justify-content:center;
-`;
-const BellWrap = styled(IconBtn)` position: relative; `;
-const Dot = styled.View`
-  position:absolute; top: -3px; right: -3px; min-width: 16px; height:16px; padding:0 3px;
-  border-radius: 8px; background:#ef4444; align-items:center; justify-content:center;
-`;
-const DotText = styled.Text` color:#fff; font-size:10px; font-weight:800; `;
-
 /* ---------- common card ---------- */
 const SectionCard = styled.View`
   background: ${(p: TTheme) => p.theme.colors.surface};
@@ -87,13 +69,23 @@ const HeroCard = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
 }))`
   border-radius: 18px; padding: 16px; margin-bottom: 14px;
 `;
-const LiveBadge = styled.View`
-  position:absolute; right:10px; top:10px; background: rgba(255,255,255,0.22);
-  padding:4px 8px; border-radius:8px;
+const HeroHeader = styled.View` flex-direction: row; align-items: center; justify-content: space-between; `;
+const LeftHead = styled.View` flex-direction: row; align-items: center; gap: 10px; `;
+const IconCircle = styled.View`
+  width:28px;height:28px;border-radius:14px;background:rgba(255,255,255,.25);align-items:center;justify-content:center;
 `;
+const LiveBadge = styled.View` background: rgba(255,255,255,.22); padding: 4px 8px; border-radius: 8px; `;
 const LiveText = styled.Text` color:#fff; font-weight:800; font-size:11px; `;
+
 const HeroTitle = styled.Text` color:#fff; font-weight:900; font-size:16px; `;
-const HeroSub = styled.Text` color:#fff; opacity:.95; margin-top:6px; `;
+const MetaText  = styled.Text` color:#fff; opacity:.9; margin-top:6px; `;
+const HeroSub   = styled.Text` color:#fff; opacity:.95; margin-top:10px; line-height:20px; `;
+
+const GoalPill = styled.View`
+  margin-top:12px;background:rgba(255,255,255,.18);border-radius:12px;padding:10px 12px;
+  flex-direction:row;align-items:center;gap:8px;
+`;
+const GoalPillText = styled.Text` color:#fff; font-weight:800; opacity:.95; `;
 
 /* ---------- section titles ---------- */
 const TitleRow = styled.View` margin:6px 2px 8px 2px; flex-direction:row; align-items:center; gap:6px; `;
@@ -110,8 +102,10 @@ const KpiValue = styled.Text` font-size:24px; font-weight:900; color:${(p:TTheme
 const KpiUnit = styled.Text` color:#7a7a90; font-size:12px; `;
 const Bar = styled.View` height:8px; background:#efeff5; border-radius:8px; margin-top:8px; `;
 const Fill = styled.View<{ w: number; color?: string }>`
-  height: 100%; width: ${(p: { w: number }) => p.w}%;
-  background: ${(p: { color?: string }) => p.color ?? '#6E56CF'}; border-radius: 8px;
+  height: 100%;
+  width: ${(p: { w: number }) => p.w}%;
+  background: ${(p: { color?: string }) => p.color ?? '#6E56CF'};
+  border-radius: 8px;
 `;
 const Hint = styled.Text` color:#7a7a90; font-size:12px; margin-top:8px; `;
 
@@ -122,15 +116,15 @@ const Badge = styled.Text`
 `;
 
 /* ---------- reco ---------- */
-const RecoOuter = styled(SectionCard)` margin-top:14px; `;
+const RecoOuter  = styled(SectionCard)` margin-top:14px; `;
 const RecoHeader = styled(TitleRow)``;
 const RecoBox = styled.View<{ bg: string }>`
   background: ${(p: { bg: string }) => p.bg};
   border-radius: 14px; padding: 14px; margin-top: 10px;
 `;
 const RecoTitle = styled.Text` font-weight:900; color:#121212; margin-bottom:6px; `;
-const RecoDesc = styled.Text` color:#7a7a90; `;
-const ChipRow = styled.View` flex-direction:row; flex-wrap:wrap; gap:8px; margin-top:10px; `;
+const RecoDesc  = styled.Text` color:#7a7a90; `;
+const ChipRow   = styled.View` flex-direction:row; flex-wrap:wrap; gap:8px; margin-top:10px; `;
 const Chip = styled.Text<{ fg?: string; bg?: string }>`
   color: ${(p: { fg?: string }) => p.fg ?? '#6E56CF'};
   background: ${(p: { bg?: string }) => p.bg ?? '#F3EFFF'};
@@ -191,15 +185,45 @@ const GFill = styled(LinearGradient).attrs((p:{theme:DefaultTheme}) => ({
 }))` padding:12px; border-radius:12px; align-items:center; `;
 const GText = styled.Text` color:#fff; font-weight:800; `;
 
+/* ---------- helpers ---------- */
+type Slot = 'morning'|'afternoon'|'evening'|'night';
+const dayNames = ['일','월','화','수','목','금','토'] as const;
+function getSlot(d:Date):Slot{const h=d.getHours();if(h>=6&&h<12)return'morning';if(h>=12&&h<18)return'afternoon';if(h>=18&&h<22)return'evening';return'night';}
+function partLabel(h:number){if(h<12)return'오전';if(h<18)return'오후';return'저녁';}
+const POOLS:Record<Slot,string[]>={
+  morning:['상쾌한 아침이에요, {name}! 가벼운 스트레칭으로 시작해볼까요? ☀️','좋은 아침! 물 한 컵으로 몸을 깨워요 💧','오늘도 화이팅! 단백질 챙기는 아침 어떠세요? 🥚'],
+  afternoon:['활기찬 오후 보내고 계신가요 {name}? 짧은 산책으로 리프레시! 🚶‍♂️','점심 이후 졸릴 땐 물 한 잔과 가벼운 스트레칭! 💦','남은 오후는 페이스 유지하며 차근차근—좋아요 🙂'],
+  evening:['수고 많았어요 {name}! 오늘의 마무리 운동 어떠세요? 💪','저녁 식단은 가볍고 균형있게—제가 추천 드릴게요 🥗','하루를 잘 보냈어요. 가벼운 산책으로 쿨다운 해볼까요? 🌇'],
+  night:['고생했어요 {name}! 화면 밝기 낮추고 수면 준비해요 🌙','하루 기록 체크하고 편안한 밤 보내요 😴','내일을 위해 일찍 잠들면 회복에 큰 도움이 돼요 🛌'],
+};
+
 /* ---------- component ---------- */
 export default function HomeScreen() {
   const { signOut, user } = useAuth() as any;
-  const theme = useTheme() as DefaultTheme & { mode?: 'light'|'dark'; toggleMode?: () => void };
+  const nav = useNavigation<any>();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // confirm modal animation
+  // time-aware hero text
+  const [heroText, setHeroText] = useState('');
+  const [heroMeta, setHeroMeta] = useState('');
+  const [goalLabel, setGoalLabel] = useState('체중 감량');
+
+  useEffect(() => {
+    const now = new Date();
+    const slot = getSlot(now);
+    const name = (user?.name as string | undefined) ?? '다짐 사용자님';
+    const pick = POOLS[slot][Math.floor(Math.random()*POOLS[slot].length)];
+    setHeroText(pick.replace('{name}', name));
+    setHeroMeta(`${dayNames[now.getDay()]}요일 · 실시간 분석`);
+    setGoalLabel((user?.goal as string | undefined) ?? '체중 감량');
+  }, [user]);
+
+  const now = new Date();
+  const headerSubtitle = `${now.getMonth()+1}월 ${now.getDate()}일 (${dayNames[now.getDay()]}) · ${partLabel(now.getHours())}`;
+
+  // confirm animation
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.92)).current;
   useEffect(() => {
@@ -210,18 +234,12 @@ export default function HomeScreen() {
         Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 8 }),
       ]).start();
     }
-  }, [confirmOpen]);
-
-  const onToggleTheme = () => {
-    if (theme?.toggleMode) theme.toggleMode();
-    else Alert.alert('테마 전환', 'ThemeProvider에 toggleMode를 연결해 주세요.');
-  };
+  }, [confirmOpen, fade, scale]);
 
   const askLogout = () => {
     setMenuOpen(false);
     setTimeout(() => setConfirmOpen(true), 120);
   };
-
   const doLogout = () => {
     setConfirmOpen(false);
     setTimeout(() => signOut(), 140);
@@ -238,7 +256,7 @@ export default function HomeScreen() {
             </Logo>
             <BrandCol>
               <BrandTitle>다짐</BrandTitle>
-              <BrandSubtitle>9월 18일 (목) · 저녁</BrandSubtitle>
+              <BrandSubtitle>{headerSubtitle}</BrandSubtitle>
             </BrandCol>
           </BrandRow>
 
@@ -248,10 +266,12 @@ export default function HomeScreen() {
               <StreakText>7일째</StreakText>
             </Streak>
             {/* 알림 */}
-            <BellWrap onPress={() => Alert.alert('알림', '알림 화면을 연결해 주세요.')}>
+            <Pressable onPress={() => Alert.alert('알림', '알림 화면을 연결해 주세요.')} style={{ position:'relative' }}>
               <Ionicons name="notifications-outline" size={18} color="#121212" />
-              <Dot><DotText>3</DotText></Dot>
-            </BellWrap>
+              <View style={{position:'absolute',top:-3,right:-3,minWidth:16,height:16,paddingHorizontal:3,borderRadius:8,backgroundColor:'#ef4444',alignItems:'center',justifyContent:'center'}}>
+                <Text style={{color:'#fff',fontSize:10,fontWeight:'800'}}>3</Text>
+              </View>
+            </Pressable>
             {/* 계정(아바타) */}
             <Pressable onPress={() => setMenuOpen(true)} hitSlop={8}>
               <Logo start={{x:0,y:0}} end={{x:1,y:1}}>
@@ -261,67 +281,43 @@ export default function HomeScreen() {
           </HeaderRight>
         </Header>
 
-        {/* search + theme toggle */}
-        <TopControls>
-          <Search onPress={() => Alert.alert('검색', '검색 화면을 연결해 주세요.')}>
-            <Ionicons name="search" size={16} color="#7a7a90" />
-            <SearchText>검색</SearchText>
-          </Search>
-          <IconBtn onPress={onToggleTheme}>
-            <Ionicons name={theme?.mode === 'dark' ? 'sunny' : 'moon'} size={18} color="#121212" />
-          </IconBtn>
-        </TopControls>
-
         {/* hero */}
         <HeroCard style={appTheme.shadow.card}>
-          <LiveBadge><LiveText>LIVE</LiveText></LiveBadge>
-          <View style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-            <View style={{
-              width:36,height:36,borderRadius:18,backgroundColor:'rgba(255,255,255,0.25)',
-              alignItems:'center',justifyContent:'center',
-            }}>
-              <Ionicons name="flash" size={20} color="#fff" />
-            </View>
-            <View style={{ flex:1 }}>
+          <HeroHeader>
+            <LeftHead>
+              <IconCircle><Ionicons name="flash" size={18} color="#fff"/></IconCircle>
               <HeroTitle>다짐 AI 코치</HeroTitle>
-              <HeroSub>하루 수고하셨어요 다짐 사용자님! 오늘의 마무리는? 🌙</HeroSub>
-            </View>
-          </View>
+            </LeftHead>
+            <LiveBadge><LiveText>LIVE</LiveText></LiveBadge>
+          </HeroHeader>
+          <MetaText>{heroMeta}</MetaText>
+          <HeroSub>{heroText || '오늘도 목표를 향해 함께 가요! 💪'}</HeroSub>
+          <GoalPill>
+            <Ionicons name="radio-button-on-outline" size={14} color="rgba(255,255,255,0.95)"/>
+            <GoalPillText>목표: {goalLabel}</GoalPillText>
+          </GoalPill>
         </HeroCard>
 
         {/* 오늘의 목표 */}
-        <TitleRow>
-          <Ionicons name="checkmark-circle-outline" size={16} color="#6E56CF" />
-          <Title>오늘의 목표</Title>
-        </TitleRow>
+        <TitleRow><Ionicons name="checkmark-circle-outline" size={16} color="#6E56CF" /><Title>오늘의 목표</Title></TitleRow>
 
         <KPIWrap>
           <KPI style={appTheme.shadow.card}>
             <KpiTop>
-              <KpiTitleRow>
-                <Ionicons name="nutrition-outline" size={16} color="#6E56CF" />
-                <KpiTitle>칼로리</KpiTitle>
-              </KpiTitleRow>
+              <KpiTitleRow><Ionicons name="nutrition-outline" size={16} color="#6E56CF" /><KpiTitle>칼로리</KpiTitle></KpiTitleRow>
               <Ionicons name="information-circle-outline" size={16} color="#C0C3CF" />
             </KpiTop>
-            <KpiValueRow>
-              <KpiValue>1,430</KpiValue><KpiUnit>/ 2,000 kcal</KpiUnit>
-            </KpiValueRow>
+            <KpiValueRow><KpiValue>1,430</KpiValue><KpiUnit>/ 2,000 kcal</KpiUnit></KpiValueRow>
             <Bar><Fill w={72} /></Bar>
             <Hint>좋은 페이스네요! 🔥</Hint>
           </KPI>
 
           <KPI style={appTheme.shadow.card}>
             <KpiTop>
-              <KpiTitleRow>
-                <Ionicons name="time-outline" size={16} color="#6E56CF" />
-                <KpiTitle>운동</KpiTitle>
-              </KpiTitleRow>
+              <KpiTitleRow><Ionicons name="time-outline" size={16} color="#6E56CF" /><KpiTitle>운동</KpiTitle></KpiTitleRow>
               <Ionicons name="information-circle-outline" size={16} color="#C0C3CF" />
             </KpiTop>
-            <KpiValueRow>
-              <KpiValue>45</KpiValue><KpiUnit>/ 60 분</KpiUnit>
-            </KpiValueRow>
+            <KpiValueRow><KpiValue>45</KpiValue><KpiUnit>/ 60 분</KpiUnit></KpiValueRow>
             <Bar><Fill w={75} color="#0b76d1" /></Bar>
             <Hint>거의 다 왔어요! 파이팅! 🏋️‍♀️</Hint>
           </KPI>
@@ -330,30 +326,20 @@ export default function HomeScreen() {
         <KPIWrap>
           <KPI style={appTheme.shadow.card}>
             <KpiTop>
-              <KpiTitleRow>
-                <Ionicons name="water-outline" size={16} color="#6E56CF" />
-                <KpiTitle>수분</KpiTitle>
-              </KpiTitleRow>
+              <KpiTitleRow><Ionicons name="water-outline" size={16} color="#6E56CF" /><KpiTitle>수분</KpiTitle></KpiTitleRow>
               <Ionicons name="information-circle-outline" size={16} color="#C0C3CF" />
             </KpiTop>
-            <KpiValueRow>
-              <KpiValue>1.8</KpiValue><KpiUnit>/ 2.5L</KpiUnit>
-            </KpiValueRow>
+            <KpiValueRow><KpiValue>1.8</KpiValue><KpiUnit>/ 2.5L</KpiUnit></KpiValueRow>
             <Bar><Fill w={72} color="#13a10e" /></Bar>
             <Hint>좋은 습관이에요! 💧</Hint>
           </KPI>
 
           <KPI style={appTheme.shadow.card}>
             <KpiTop>
-              <KpiTitleRow>
-                <Ionicons name="walk-outline" size={16} color="#6E56CF" />
-                <KpiTitle>걸음</KpiTitle>
-              </KpiTitleRow>
+              <KpiTitleRow><Ionicons name="walk-outline" size={16} color="#6E56CF" /><KpiTitle>걸음</KpiTitle></KpiTitleRow>
               <Ionicons name="information-circle-outline" size={16} color="#C0C3CF" />
             </KpiTop>
-            <KpiValueRow>
-              <KpiValue>8,240</KpiValue><KpiUnit>/ 10,000</KpiUnit>
-            </KpiValueRow>
+            <KpiValueRow><KpiValue>8,240</KpiValue><KpiUnit>/ 10,000</KpiUnit></KpiValueRow>
             <Bar><Fill w={82} color="#6E56CF" /></Bar>
             <Hint>목표까지 얼마 안 남았어요! ✨</Hint>
           </KPI>
@@ -368,12 +354,10 @@ export default function HomeScreen() {
             </View>
             <Badge>양호</Badge>
           </View>
-
           <View style={{ flexDirection:'row', alignItems:'flex-end', gap:8, marginTop:8 }}>
             <Title style={{ fontSize:22 }}>7.5</Title>
             <Title style={{ fontSize:14, color:'#7a7a90' }}>시간</Title>
           </View>
-
           <View style={{ marginTop:6, flexDirection:'row', justifyContent:'space-between' }}>
             <Title style={{ color:'#7a7a90', fontSize:12 }}>목표: 8시간</Title>
             <Title style={{ color:'#7a7a90', fontSize:12 }}>23:30 - 07:00</Title>
@@ -417,7 +401,7 @@ export default function HomeScreen() {
         </RecoOuter>
       </Container>
 
-      {/* account popover */}
+      {/* account popover (개인정보/도움말 제거, 설정 연결) */}
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Dim onPress={() => setMenuOpen(false)}>
           <MenuWrap>
@@ -434,17 +418,17 @@ export default function HomeScreen() {
                 <MenuText>프로필 관리</MenuText>
                 <Ionicons name="person-circle-outline" size={18} color="#7a7a90" />
               </MenuItem>
-              <MenuItem onPress={() => Alert.alert('설정', '설정 화면 연결')}>
+
+              <MenuItem
+                onPress={() => {
+                  setMenuOpen(false);
+                  setTimeout(() => {
+                    (nav as any).navigate('Settings');
+                  }, 120);
+                }}
+              >
                 <MenuText>설정</MenuText>
                 <Ionicons name="settings-outline" size={18} color="#7a7a90" />
-              </MenuItem>
-              <MenuItem onPress={() => Alert.alert('개인정보 보호', '정책 화면 연결')}>
-                <MenuText>개인정보 보호</MenuText>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#7a7a90" />
-              </MenuItem>
-              <MenuItem onPress={() => Alert.alert('도움말', '헬프/FAQ 화면 연결')}>
-                <MenuText>도움말</MenuText>
-                <Ionicons name="help-circle-outline" size={18} color="#7a7a90" />
               </MenuItem>
 
               <Divider />
@@ -458,7 +442,7 @@ export default function HomeScreen() {
         </Dim>
       </Modal>
 
-      {/* logout confirm modal with animation */}
+      {/* logout confirm modal */}
       <Modal visible={confirmOpen} transparent animationType="none" onRequestClose={() => setConfirmOpen(false)}>
         <CDim onPress={() => setConfirmOpen(false)}>
           <Animated.View style={{ transform: [{ scale }], opacity: fade, width: '100%', alignItems: 'center' }}>
