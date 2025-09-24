@@ -1,232 +1,361 @@
 // screens/ReportScreen.tsx
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ScrollView, View, Animated, Easing } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 import type { DefaultTheme } from 'styled-components/native';
-import Svg, { G, Line as SvgLine, Polyline, Circle, Rect } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import Svg, {
+  Polyline,
+  Line as SvgLine,
+  Circle,
+  Rect,
+  G,
+  Text as SvgText,
+} from 'react-native-svg';
 
-const Page = styled(SafeAreaView)`flex:1;background-color:${(p:{theme:DefaultTheme})=>p.theme.colors.background};`;
+type TTheme = { theme: DefaultTheme };
+
+const Page = styled(SafeAreaView)`flex:1;background:${(p:TTheme)=>p.theme.colors.background};`;
 const Container = styled(ScrollView).attrs({
-  contentContainerStyle:{ paddingTop:20, paddingHorizontal:16, paddingBottom:16 },
+  contentContainerStyle:{ paddingTop:20, paddingHorizontal:16, paddingBottom:24 },
 })`flex:1;`;
 
-const Hero = styled.View`background:#8a63d2;border-radius:16px;padding:16px;margin-bottom:16px;`;
+const Hero = styled(LinearGradient).attrs({
+  colors:['#7c6cf2','#e057c2'], start:{x:0,y:0}, end:{x:1,y:1},
+})`border-radius:16px;padding:16px;margin-bottom:16px;`;
 const HeroTitle = styled.Text`color:#fff;font-weight:800;margin-bottom:4px;`;
-const HeroValue = styled.Text`color:#fff;font-weight:800;font-size:20px;`;
+const HeroMeta  = styled.Text`color:rgba(255,255,255,.8);`;
+const HeroBig   = styled.Text`color:#fff;font-weight:800;font-size:20px;`;
 
 const Grid = styled.View`flex-direction:row;flex-wrap:wrap;gap:12px;`;
-const Card = styled.View`background:#fff;border-radius:16px;padding:16px;width:48%;`;
-const Title = styled.Text`font-weight:800;margin-bottom:6px;`;
+const Card = styled.View`
+  background:${(p:TTheme)=>p.theme.colors.surface};
+  border-radius:16px;padding:16px;width:48%;
+`;
+const Title = styled.Text`font-weight:800;margin-bottom:6px;color:${(p:TTheme)=>p.theme.colors.text};`;
 const Sub = styled.Text`color:#7a7a90;`;
+const ProgressTrack = styled.View`height:6px;background:#eee;border-radius:999px;margin-top:8px;`;
+const ProgressFill  = styled.View<{w:number;color?:string}>`
+  height:100%;width:${p=>p.w}%;border-radius:999px;background:${p=>p.color||'#6E56CF'};
+`;
 
-const ChartCard = styled.View`background:#fff;border-radius:16px;padding:16px;margin-top:12px;`;
+const ChartCard = styled.View`
+  background:${(p:TTheme)=>p.theme.colors.surface};
+  border-radius:16px;padding:16px;margin-top:12px;
+`;
+const SectionHeader = styled.View`flex-direction:row;align-items:center;gap:6px;margin-bottom:12px;`;
+const SectionTitle  = styled.Text`font-weight:900;color:${(p:TTheme)=>p.theme.colors.text};`;
 
-/* -------------------- 더미 데이터 -------------------- */
-const REPORT = {
-  monthLabel: '9월 진행 리포트',
-  achievementRate: 82,
-  summary: { weightDeltaKg: -2.3, workoutDays: 18 },
-  stats: {
-    weightLossKg: { value: 2.3, target: 5 },
-    avgCalories:  { value: 1863, target: 1800 },
-    workoutDays:  { value: 18,   target: 20 },
-    bodyFatDrop:  { value: 2.1,  target: 3 },
-  },
-  weekly: [
-    { day: '월', weight: 72.5, exerciseMin: 45 },
-    { day: '화', weight: 72.2, exerciseMin: 30 },
-    { day: '수', weight: 72.0, exerciseMin: 60 },
-    { day: '목', weight: 71.8, exerciseMin: 0  },
-    { day: '금', weight: 71.9, exerciseMin: 45 },
-    { day: '토', weight: 72.0, exerciseMin: 0  },
-    { day: '일', weight: 71.7, exerciseMin: 38 },
-  ],
-} as const;
-/* --------------------------------------------------- */
+const CoachCard = styled(LinearGradient).attrs({
+  colors:['#ecfdf5','#e6fffb'], start:{x:0,y:0}, end:{x:1,y:1},
+})`border-radius:16px;padding:16px;margin-top:12px;border-width:1px;border-color:#a7f3d0;`;
 
+const weeklyData = [
+  { day:'월', weight:72.5, exercise:45 },
+  { day:'화', weight:72.3, exercise:30 },
+  { day:'수', weight:72.1, exercise:60 },
+  { day:'목', weight:72.0, exercise:0  },
+  { day:'금', weight:71.8, exercise:45 },
+  { day:'토', weight:71.9, exercise:0  },
+  { day:'일', weight:71.7, exercise:40 },
+];
+
+const monthlyStats = {
+  weightLoss:  { label:'체중 감량',   value:2.3, unit:'kg',   target:5 },
+  avgCalories: { label:'평균 칼로리', value:1863, unit:'kcal', target:1800 },
+  workoutDays: { label:'운동 일수',   value:18,  unit:'일',   target:20 },
+  bodyFat:     { label:'체지방 감소', value:2.1, unit:'%',   target:3 },
+};
+
+/* chart dims */
+const CHART_H = 208;
+const PAD = { l: 64, r: 16, t: 20, b: 36 };
+
+/* Animated SVG components */
 const AnimatedPolyline = Animated.createAnimatedComponent(Polyline);
-const AnimatedCircle   = Animated.createAnimatedComponent(Circle);
 const AnimatedRect     = Animated.createAnimatedComponent(Rect);
 
 export default function ReportScreen() {
-  const weightDelta = REPORT.summary.weightDeltaKg;
-  const weightDeltaText = `${weightDelta > 0 ? '+' : ''}${weightDelta}kg · ${REPORT.summary.workoutDays}일`;
+  const [wChartW, setWChartW] = useState(0);
+  const [eChartW, setEChartW] = useState(0);
 
-  const [wChart, setWChart] = useState(0);
-  const [hChart, setHChart] = useState(0);
-  const pad = 16;
-
-  // line scale
-  const weights = REPORT.weekly.map(d => d.weight);
-  const minY = Math.floor(Math.min(...weights) * 10) / 10 - 0.2;
-  const maxY = Math.ceil(Math.max(...weights) * 10) / 10 + 0.2;
-
-  const toX = (i:number) => (REPORT.weekly.length<=1? pad : pad + (i * (wChart - pad*2)) / (REPORT.weekly.length - 1));
-  const toY = (v:number) => {
-    const t = (v - minY) / (maxY - minY);
-    return hChart - pad - t * (hChart - pad*2);
+  const sx = (i:number,count:number,width:number)=>{
+    const usable = width - PAD.l - PAD.r;
+    return PAD.l + (usable*i)/(count-1);
+  };
+  const sy = (val:number,min:number,max:number)=>{
+    const usable = CHART_H - PAD.t - PAD.b;
+    const t = (val-min)/(max-min||1);
+    return CHART_H - PAD.b - t*usable;
   };
 
-  const points = REPORT.weekly.map((d,i)=>({ x:toX(i), y:toY(d.weight) }));
-  const pathPoints = points.map(p=>`${p.x},${p.y}`).join(' ');
-  const totalLen = useMemo(()=>{
-    let len = 0;
-    for (let i=1;i<points.length;i++){
-      const dx = points[i].x - points[i-1].x;
-      const dy = points[i].y - points[i-1].y;
-      len += Math.sqrt(dx*dx + dy*dy);
+  /* ===== 꺾은선(체중) 애니메이션 ===== */
+  const yTicksWeight = [71, 71.5, 72, 72.5, 73];
+  const wMin = yTicksWeight[0];
+  const wMax = yTicksWeight[yTicksWeight.length-1];
+
+  const weightPts = useMemo(()=>{
+    if(!wChartW) return [] as {x:number;y:number}[];
+    return weeklyData.map((d,i)=>({ x: sx(i,weeklyData.length,wChartW), y: sy(d.weight,wMin,wMax) }));
+  },[wChartW]);
+
+  // 선 길이 계산
+  const pathLen = useMemo(()=>{
+    if(weightPts.length<2) return 0;
+    let L = 0;
+    for(let i=1;i<weightPts.length;i++){
+      const a=weightPts[i-1], b=weightPts[i];
+      L += Math.hypot(b.x-a.x, b.y-a.y);
     }
-    return len;
-  },[wChart,hChart]);
+    return L;
+  },[weightPts]);
 
-  // bar scale
-  const maxMin = Math.max(...REPORT.weekly.map(d=>d.exerciseMin), 60);
-  const barW = useMemo(()=>{
-    if (wChart<=0) return 0;
-    const innerW = wChart - pad*2;
-    return innerW / REPORT.weekly.length * 0.55;
-  },[wChart]);
+  // dashoffset 애니메이션 (왼→오른쪽)
+  const dashOffset = useMemo(()=>new Animated.Value(0),[]);
+  useEffect(()=>{
+    if(pathLen>0){
+      dashOffset.setValue(pathLen);
+      Animated.timing(dashOffset,{
+        toValue: 0,
+        duration: 1100,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: false, // svg 수치 props
+      }).start();
+    }
+  },[pathLen, dashOffset]);
 
-  // animations
-  const lineProg = useRef(new Animated.Value(0)).current;
-  const dotProgs = useRef(REPORT.weekly.map(()=>new Animated.Value(0))).current;
-  const barProgs = useRef(REPORT.weekly.map(()=>new Animated.Value(0))).current;
-
-  useFocusEffect(
-    React.useCallback(()=>{
-      if (wChart<=0 || hChart<=0) return;
-      lineProg.setValue(0);
-      dotProgs.forEach(v=>v.setValue(0));
-      barProgs.forEach(v=>v.setValue(0));
-
-      const dotAnims = dotProgs.map((v,i)=>Animated.timing(v,{toValue:1,duration:260,delay:60+i*70,useNativeDriver:true}));
-      const barAnims = barProgs.map((v,i)=>Animated.timing(v,{toValue:1,duration:420,delay:80+i*60,easing:Easing.out(Easing.cubic),useNativeDriver:false}));
-
-      Animated.parallel([
-        Animated.timing(lineProg,{toValue:1,duration:800,easing:Easing.out(Easing.cubic),useNativeDriver:false}),
-        Animated.stagger(40,dotAnims),
-        Animated.stagger(30,barAnims),
-      ]).start();
-    },[wChart,hChart])
-  );
-
-  const dashOffset = lineProg.interpolate({ inputRange:[0,1], outputRange:[totalLen||1,0] });
+  /* ===== 막대(운동) 애니메이션 ===== */
+  const barProgress = useMemo(()=>weeklyData.map(()=>new Animated.Value(0)),[]);
+  useEffect(()=>{
+    if(eChartW>0){
+      Animated.stagger(
+        90,
+        barProgress.map(v=>Animated.timing(v,{
+          toValue: 1,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false, // svg y/height
+        }))
+      ).start();
+    }
+  },[eChartW, barProgress]);
 
   return (
     <Page>
       <Container>
+
+        {/* HERO */}
         <Hero>
-          <HeroTitle>{REPORT.monthLabel}</HeroTitle>
-          <Sub style={{ color:'#EDE7FF', marginBottom:8 }}>목표 달성도 {REPORT.achievementRate}%</Sub>
-          <HeroValue>{weightDeltaText}</HeroValue>
+          <HeroTitle>8월 진행 리포트</HeroTitle>
+          <HeroMeta>목표 달성도 82%</HeroMeta>
+          <View style={{flexDirection:'row',gap:24,marginTop:8}}>
+            <View><HeroBig>-2.3kg</HeroBig><HeroMeta>체중 감량</HeroMeta></View>
+            <View><HeroBig>18일</HeroBig><HeroMeta>운동 일수</HeroMeta></View>
+          </View>
         </Hero>
 
+        {/* 4 stats */}
         <Grid>
-          <Card><Title>체중 감량</Title><HeroValue style={{color:'#121212',fontSize:18}}>{REPORT.stats.weightLossKg.value} kg</HeroValue><Sub>목표: {REPORT.stats.weightLossKg.target}kg</Sub></Card>
-          <Card><Title>평균 칼로리</Title><HeroValue style={{color:'#121212',fontSize:18}}>{REPORT.stats.avgCalories.value} kcal</HeroValue><Sub>목표: {REPORT.stats.avgCalories.target}kcal</Sub></Card>
-          <Card><Title>운동 일수</Title><HeroValue style={{color:'#121212',fontSize:18}}>{REPORT.stats.workoutDays.value} 일</HeroValue><Sub>목표: {REPORT.stats.workoutDays.target}일</Sub></Card>
-          <Card><Title>체지방 감소</Title><HeroValue style={{color:'#121212',fontSize:18}}>{REPORT.stats.bodyFatDrop.value} %</HeroValue><Sub>목표: {REPORT.stats.bodyFatDrop.target}%</Sub></Card>
+          <Card>
+            <Title>{monthlyStats.weightLoss.label}</Title>
+            <HeroBig style={{color:'#121212',fontSize:18}}>
+              {monthlyStats.weightLoss.value} {monthlyStats.weightLoss.unit}
+            </HeroBig>
+            <Sub>목표: {monthlyStats.weightLoss.target}{monthlyStats.weightLoss.unit}</Sub>
+            <ProgressTrack><ProgressFill w={(monthlyStats.weightLoss.value/monthlyStats.weightLoss.target)*100}/></ProgressTrack>
+          </Card>
+          <Card>
+            <Title>{monthlyStats.avgCalories.label}</Title>
+            <HeroBig style={{color:'#121212',fontSize:18}}>
+              {monthlyStats.avgCalories.value} {monthlyStats.avgCalories.unit}
+            </HeroBig>
+            <Sub>목표: {monthlyStats.avgCalories.target}{monthlyStats.avgCalories.unit}</Sub>
+            <ProgressTrack><ProgressFill w={(monthlyStats.avgCalories.value/monthlyStats.avgCalories.target)*100} color="#333"/></ProgressTrack>
+          </Card>
+          <Card>
+            <Title>{monthlyStats.workoutDays.label}</Title>
+            <HeroBig style={{color:'#121212',fontSize:18}}>
+              {monthlyStats.workoutDays.value} {monthlyStats.workoutDays.unit}
+            </HeroBig>
+            <Sub>목표: {monthlyStats.workoutDays.target}{monthlyStats.workoutDays.unit}</Sub>
+            <ProgressTrack><ProgressFill w={(monthlyStats.workoutDays.value/monthlyStats.workoutDays.target)*100} color="#0b76d1"/></ProgressTrack>
+          </Card>
+          <Card>
+            <Title>{monthlyStats.bodyFat.label}</Title>
+            <HeroBig style={{color:'#121212',fontSize:18}}>
+              {monthlyStats.bodyFat.value} {monthlyStats.bodyFat.unit}
+            </HeroBig>
+            <Sub>목표: {monthlyStats.bodyFat.target}{monthlyStats.bodyFat.unit}</Sub>
+            <ProgressTrack><ProgressFill w={(monthlyStats.bodyFat.value/monthlyStats.bodyFat.target)*100} color="#ef4444"/></ProgressTrack>
+          </Card>
         </Grid>
 
-        {/* 주간 체중 변화 */}
-        <ChartCard
-          onLayout={(e: LayoutChangeEvent) => {
-            setWChart(e.nativeEvent.layout.width);
-            setHChart(220);
-          }}
-        >
-          <Title>주간 체중 변화</Title>
+        {/* ===== 주간 체중 변화 (꺾은선 애니메이션) ===== */}
+        <ChartCard>
+          <SectionHeader>
+            <Ionicons name="trending-down-outline" size={16} color="#22c55e" />
+            <SectionTitle>주간 체중 변화</SectionTitle>
+          </SectionHeader>
 
-          {wChart>0 && (
-            <Svg width={wChart} height={220}>
-              <G>
-                {[0,1,2,3,4].map(i=>{
-                  const y = 16 + ((220 - 32) * i)/4;
-                  return <SvgLine key={i} x1={16} y1={y} x2={wChart-16} y2={y} stroke="#EAEAF0" strokeDasharray="3 3" />;
-                })}
-              </G>
+          <View style={{width:'100%',alignItems:'center'}}
+                onLayout={(e)=>setWChartW(e.nativeEvent.layout.width)}>
+            {wChartW>0 && (
+              <Svg width={wChartW} height={CHART_H}>
+                {/* grid + y labels */}
+                <G>
+                  {[71,71.5,72,72.5,73].map((v,i)=>{
+                    const y = sy(v, wMin, wMax);
+                    return (
+                      <G key={i}>
+                        <SvgLine x1={PAD.l} y1={y} x2={wChartW-PAD.r} y2={y} stroke="#eaeaea" strokeWidth={1}/>
+                        <SvgText x={PAD.l-14} y={y+3} fill="#9aa0a6" fontSize={11} textAnchor="end">{v}</SvgText>
+                      </G>
+                    );
+                  })}
+                </G>
+                {/* vertical grid */}
+                <G>
+                  {weeklyData.map((_,i)=>{
+                    const x = sx(i,weeklyData.length,wChartW);
+                    return <SvgLine key={i} x1={x} y1={PAD.t} x2={x} y2={CHART_H-PAD.b-6} stroke="#eaeaea" strokeWidth={1} strokeDasharray="4 4"/>;
+                  })}
+                </G>
+                <SvgLine x1={PAD.l} y1={CHART_H-PAD.b-6} x2={wChartW-PAD.r} y2={CHART_H-PAD.b-6} stroke="#D7DBE7" strokeWidth={1.5}/>
 
-              <AnimatedPolyline
-                points={pathPoints}
-                fill="none"
-                stroke="#6e56cf"
-                strokeWidth={3}
-                strokeLinecap="round"
-                strokeDasharray={`${totalLen}, ${totalLen}`}
-                strokeDashoffset={dashOffset as any}
-              />
+                {/* x labels */}
+                <G>
+                  {weeklyData.map((d,i)=>(
+                    <SvgText key={i} x={sx(i,weeklyData.length,wChartW)} y={CHART_H-PAD.b+16} fill="#9aa0a6" fontSize={12} textAnchor="middle">
+                      {d.day}
+                    </SvgText>
+                  ))}
+                </G>
 
-              {points.map((p,i)=>{
-                const rAnim = dotProgs[i].interpolate({ inputRange:[0,1], outputRange:[0.5,4] });
-                return (
-                  <AnimatedCircle
-                    key={i}
-                    cx={p.x}
-                    cy={p.y}
-                    r={rAnim as any}
-                    fill="#6e56cf"
-                    opacity={dotProgs[i] as any}
-                  />
-                );
-              })}
-            </Svg>
-          )}
-
-          <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop:6, paddingHorizontal:4 }}>
-            {REPORT.weekly.map(d=>(
-              <Sub key={d.day} style={{ width:24, textAlign:'center' }}>{d.day}</Sub>
-            ))}
+                {/* line reveal: dashoffset 애니메이션 */}
+                <AnimatedPolyline
+                  points={weightPts.map(p=>`${p.x},${p.y}`).join(' ')}
+                  fill="none"
+                  stroke="#8b5cf6"
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={`${pathLen} ${pathLen}`}
+                  strokeDashoffset={dashOffset as unknown as any}   // ← Animated.Value 그대로 전달
+                />
+                {/* dots는 고정 */}
+                {weightPts.map((p,i)=>(
+                  <Circle key={i} cx={p.x} cy={p.y} r={4} fill="#8b5cf6" stroke="#fff" strokeWidth={1.2}/>
+                ))}
+              </Svg>
+            )}
           </View>
         </ChartCard>
 
-        {/* 주간 운동 시간 */}
+        {/* ===== 주간 운동 시간 (막대 애니메이션) ===== */}
         <ChartCard>
-          <Title>주간 운동 시간</Title>
+          <SectionHeader>
+            <Ionicons name="calendar-outline" size={16} color="#3b82f6" />
+            <SectionTitle>주간 운동 시간</SectionTitle>
+          </SectionHeader>
 
-          {wChart>0 && (
-            <Svg width={wChart} height={220}>
-              <G>
-                {[0,1,2,3,4,5].map(i=>{
-                  const y = 16 + ((220 - 32) * i)/5;
-                  return <SvgLine key={i} x1={16} y1={y} x2={wChart-16} y2={y} stroke="#EAEAF0" strokeDasharray="3 3" />;
-                })}
-              </G>
+          <View style={{width:'100%',alignItems:'center'}}
+                onLayout={(e)=>setEChartW(e.nativeEvent.layout.width)}>
+            {eChartW>0 && (
+              <Svg width={eChartW} height={CHART_H}>
+                {/* grid + y labels */}
+                <G>
+                  {[0,15,30,45,60].map((v,i)=>{
+                    const y = sy(v,0,60);
+                    return (
+                      <G key={i}>
+                        <SvgLine x1={PAD.l} y1={y} x2={eChartW-PAD.r} y2={y} stroke="#eaeaea" strokeWidth={1}/>
+                        <SvgText x={PAD.l-14} y={y+3} fill="#9aa0a6" fontSize={11} textAnchor="end">{v}</SvgText>
+                      </G>
+                    );
+                  })}
+                </G>
+                {/* vertical grid */}
+                <G>
+                  {weeklyData.map((_,i)=>{
+                    const x = sx(i,weeklyData.length,eChartW);
+                    return <SvgLine key={i} x1={x} y1={PAD.t} x2={x} y2={CHART_H-PAD.b-6} stroke="#eaeaea" strokeWidth={1} strokeDasharray="4 4"/>;
+                  })}
+                </G>
+                <SvgLine x1={PAD.l} y1={CHART_H-PAD.b-6} x2={eChartW-PAD.r} y2={CHART_H-PAD.b-6} stroke="#D7DBE7" strokeWidth={1.5}/>
 
-              <G>
-                {REPORT.weekly.map((d,i)=>{
-                  const innerW = wChart - 16*2;
-                  const slotW = innerW / REPORT.weekly.length;
-                  const centerX = 16 + slotW*i + slotW/2;
-                  const maxH = 220 - 16*2;
-                  const targetH = (d.exerciseMin / maxMin) * maxH;
-                  const hAnim = barProgs[i].interpolate({ inputRange:[0,1], outputRange:[0, targetH] });
-                  const yAnim = barProgs[i].interpolate({ inputRange:[0,1], outputRange:[220-16, 220-16-targetH] });
+                {/* bars: 아래에서 위로 */}
+                {weeklyData.map((d,i)=>{
+                  const x = sx(i,weeklyData.length,eChartW);
+                  const barW = 22;
+                  const yBase = CHART_H - PAD.b - 6;
+                  const yTop  = sy(d.exercise,0,60);
+                  const hTarget = Math.max(0, yBase - yTop);
+
+                  const yAnim = barProgress[i].interpolate({ inputRange:[0,1], outputRange:[yBase, yTop] });
+                  const hAnim = barProgress[i].interpolate({ inputRange:[0,1], outputRange:[0, hTarget] });
 
                   return (
                     <AnimatedRect
-                      key={d.day}
-                      x={centerX - (barW/2)}
+                      key={i}
+                      x={x - barW/2}
+                      y={yAnim as unknown as any}        // ← Animated.Value 그대로
                       width={barW}
-                      y={yAnim as any}
-                      height={hAnim as any}
+                      height={hAnim as unknown as any}   // ← Animated.Value 그대로
                       fill="#3b82f6"
-                      rx={6}
+                      rx={4}
                     />
                   );
                 })}
-              </G>
-            </Svg>
-          )}
 
-          <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop:6, paddingHorizontal:4 }}>
-            {REPORT.weekly.map(d=>(
-              <Sub key={d.day} style={{ width:24, textAlign:'center' }}>{d.day}</Sub>
+                {/* x labels */}
+                <G>
+                  {weeklyData.map((d,i)=>(
+                    <SvgText key={i} x={sx(i,weeklyData.length,eChartW)} y={CHART_H-PAD.b+16} fill="#9aa0a6" fontSize={12} textAnchor="middle">
+                      {d.day}
+                    </SvgText>
+                  ))}
+                </G>
+              </Svg>
+            )}
+          </View>
+        </ChartCard>
+
+        {/* Achievements */}
+        <ChartCard>
+          <Title>이번 달 달성 현황</Title>
+          <View style={{flexDirection:'row',flexWrap:'wrap',gap:10,marginTop:8}}>
+            {[{icon:'🏋️',name:'주 3회 운동',done:true},
+              {icon:'🎯',name:'목표 칼로리 달성',done:true},
+              {icon:'⚖️',name:'체중 감량 목표',done:false},
+              {icon:'🔥',name:'연속 기록',done:true}].map((a,idx)=>(
+              <View key={idx} style={{
+                width:'48%',borderRadius:12,padding:12,borderWidth:2,
+                borderColor:a.done?'#bbf7d0':'#e5e7eb', backgroundColor:a.done?'#f0fdf4':'#f9fafb',
+              }}>
+                <View style={{flexDirection:'row',alignItems:'center',gap:8}}>
+                  <View style={{width:24,alignItems:'center'}}><Sub style={{fontSize:18}}>{a.icon}</Sub></View>
+                  <View style={{flex:1}}>
+                    <Title style={{fontSize:14}}>{a.name}</Title>
+                    <Sub>{a.done ? '완료' : '진행중'}</Sub>
+                  </View>
+                </View>
+              </View>
             ))}
           </View>
         </ChartCard>
+
+        {/* Coach */}
+        <CoachCard>
+          <Title>🤖 다짐 코치 피드백</Title>
+          <View style={{marginTop:6}}>
+            <Sub><Sub style={{fontWeight:'bold',color:'#065f46'}}>잘하고 있어요!</Sub> 이번 주 운동 참여율이 85%로 목표를 달성했습니다.</Sub>
+            <Sub style={{marginTop:6}}>체중이 꾸준히 감소하고 있어요. 현재 속도로 가면 목표 체중에 3주 후 도달 예상됩니다.</Sub>
+            <Sub style={{marginTop:6}}><Sub style={{fontWeight:'bold',color:'#065f46'}}>개선 포인트:</Sub> 주말 운동량이 부족해요. 가벼운 산책이나 스트레칭을 추천드립니다.</Sub>
+          </View>
+        </CoachCard>
+
       </Container>
     </Page>
   );
