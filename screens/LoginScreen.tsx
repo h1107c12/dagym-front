@@ -1,5 +1,4 @@
-// screens/LoginScreen.tsx (drop-in: empty-fields modal + dim backdrop + animation)
-
+// screens/LoginScreen.tsx
 import React, { useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -16,9 +15,11 @@ import styled from 'styled-components/native';
 import type { DefaultTheme } from 'styled-components/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../src/context/AuthContext';
 import appTheme from '../src/styles/theme';
 import { useNavigation } from '@react-navigation/native';
+import ErrorInline from './ErrorInline';
 
 /* ---------- Layout ---------- */
 const Bg = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
@@ -56,7 +57,7 @@ const GText = styled.Text` color: #fff; font-weight: 800; `;
 const Link = styled.Text` color: #6e56cf; font-weight: 700; `;
 const Muted = styled.Text` color: #9aa0a6; `;
 
-/* ---------- Modal Styles ---------- */
+/* ---------- Empty Modal ---------- */
 const Backdrop = styled(Pressable)` position: absolute; inset: 0; background-color: rgba(0,0,0,0.45); `;
 const ModalCard = styled(Animated.View)`
   width: 86%;
@@ -77,20 +78,22 @@ const ModalBtn = styled(Pressable)` margin-top: 14px; align-self: center; width:
 const ModalBtnFill = styled(GFill)` height: 42px; `;
 const Spacer = styled.View` height: 10px; `;
 
+const REMEMBER_KEY = 'auth:remember';
+
 export default function LoginScreen() {
-  const { isLoading, signIn } = useAuth();
+  const { signIn } = useAuth();
   const nav = useNavigation();
 
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [showPw, setShowPw] = useState(false);
-  // ✅ 기본값 false 유지
   const [remember, setRemember] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // ----- modal animation -----
+  // 빈칸 모달
   const [showEmptyModal, setShowEmptyModal] = useState(false);
-  const overlayAnim = useRef(new Animated.Value(0)).current;  // 0~1
-  const scaleAnim = useRef(new Animated.Value(0.96)).current; // 0.96 -> 1
+  const overlayAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.96)).current;
 
   const openEmptyModal = () => {
     setShowEmptyModal(true);
@@ -101,24 +104,42 @@ export default function LoginScreen() {
       Animated.spring(scaleAnim, { toValue: 1, friction: 7, tension: 120, useNativeDriver: true }),
     ]).start();
   };
-
   const closeEmptyModal = () => {
     Animated.parallel([
       Animated.timing(overlayAnim, { toValue: 0, duration: 120, easing: Easing.in(Easing.quad), useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 0.96, duration: 120, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
     ]).start(({ finished }) => { if (finished) setShowEmptyModal(false); });
   };
-
   const overlayStyle = useMemo(() => ({ opacity: overlayAnim }), [overlayAnim]);
   const cardStyle = useMemo(() => ({ transform: [{ scale: scaleAnim }] }), [scaleAnim]);
 
-  const onLogin = () => {
-    if (!email.trim() || !pw) {
+  // 에러 상태 (카드 내부 상단)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const clearError = () => setErrorMsg(null);
+
+  const onLogin = async () => {
+    const emailTrimmed = email.trim();
+    if (!emailTrimmed || !pw) {
       openEmptyModal();
       return;
     }
-    signIn(email.trim(), pw, remember);
+    setSubmitting(true);
+    clearError();
+    try {
+      await signIn(emailTrimmed, pw);
+      await AsyncStorage.setItem(REMEMBER_KEY, remember ? 'true' : 'false');
+    } catch (e: any) {
+      const status: number | undefined = typeof e?.status === 'number' ? e.status : undefined;
+      if (status === 400 || status === 401) setErrorMsg('이메일 또는 비밀번호가 올바르지 않습니다');
+      else setErrorMsg('서버와 통신하지 못했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // 타이핑 시작하면 에러 즉시 숨김
+  const onChangeEmail = (v: string) => { if (errorMsg) clearError(); setEmail(v); };
+  const onChangePw    = (v: string) => { if (errorMsg) clearError(); setPw(v); };
 
   return (
     <Bg>
@@ -137,6 +158,13 @@ export default function LoginScreen() {
             </CardTitleRow>
             <Subtitle>만나서 반가워요!</Subtitle>
 
+            {/* 👇 폼 내부 상단 에러 박스 */}
+            <View style={{ marginTop: 12 }}>
+              <ErrorInline visible={!!errorMsg} message={errorMsg ?? ''} onClose={clearError} />
+              {/* 여백은 일반 View로만 (애니메이션 X) */}
+              {errorMsg ? <View style={{ height: 12 }} /> : null}
+            </View>
+
             <Label>이메일</Label>
             <InputRow>
               <Ionicons name="mail-outline" size={16} color="#6E56CF" />
@@ -146,7 +174,7 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={onChangeEmail}
                 returnKeyType="next"
               />
             </InputRow>
@@ -159,21 +187,20 @@ export default function LoginScreen() {
                 placeholderTextColor="#AAB0BC"
                 secureTextEntry={!showPw}
                 value={pw}
-                onChangeText={setPw}
+                onChangeText={onChangePw}
               />
               <EyeBtn onPress={() => setShowPw((v) => !v)}>
                 <Ionicons name={showPw ? 'eye' : 'eye-off'} size={18} color="#6E56CF" />
               </EyeBtn>
             </InputRow>
 
-            {/* 로그인 유지 */}
             <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Muted>로그인 유지</Muted>
               <Switch value={remember} onValueChange={setRemember} />
             </View>
 
-            <GBtn onPress={onLogin} disabled={isLoading} style={{ marginTop: 12 }}>
-              <GFill><GText>{isLoading ? '로그인 중...' : '로그인'}</GText></GFill>
+            <GBtn onPress={onLogin} disabled={submitting} style={{ marginTop: 12 }}>
+              <GFill><GText>{submitting ? '로그인 중...' : '로그인'}</GText></GFill>
             </GBtn>
 
             <View style={{ alignItems: 'center', marginTop: 14, gap: 6 }}>
@@ -191,7 +218,7 @@ export default function LoginScreen() {
       <Modal
         visible={showEmptyModal}
         transparent
-        animationType="none"  // 직접 애니메이션 제어
+        animationType="none"
         statusBarTranslucent
         onRequestClose={closeEmptyModal}
       >

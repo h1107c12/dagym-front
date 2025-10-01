@@ -1,9 +1,12 @@
+// src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Session, User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
-type Profile = {
-  name: string;
+export type Profile = {
+  id: string;
   email: string;
+  name?: string;
   goal?: '체중 감량' | '근육 증가' | '건강 관리' | '체력 향상';
   height?: number;
   weight?: number;
@@ -11,108 +14,97 @@ type Profile = {
 };
 
 type AuthContextType = {
-  isLoading: boolean;
-  isSignedIn: boolean;
-  profile?: Profile | null;
-  signIn: (email: string, password: string, remember: boolean) => Promise<void>;
-  register: (data: Profile & { password: string }, remember: boolean) => Promise<void>;
+  isLoading: boolean;      // 앱 부팅 중 세션 로딩
+  session: Session | null;
+  profile: Profile | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  register: (data: Omit<Profile, 'id' | 'email'> & { email: string; password: string }) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const TOKEN_KEY = 'auth:token';
-const REMEMBER_KEY = 'auth:remember';
-const PROFILE_KEY = 'auth:profile';
-
-async function mockLogin(email: string, password: string): Promise<string> {
-  // TODO: 실제 API 연동으로 교체
-  await new Promise((r) => setTimeout(r, 500));
-  if (!email || !password) throw new Error('이메일/비밀번호를 입력하세요.');
-  return 'demo_token_' + Date.now();
-}
-
-async function mockRegister(): Promise<void> {
-  // TODO: 실제 회원가입 API로 교체
-  await new Promise((r) => setTimeout(r, 600));
+function extractProfileFromUser(user: User | null): Profile | null {
+  if (!user) return null;
+  const m = (user.user_metadata ?? {}) as Record<string, any>;
+  return {
+    id: user.id,
+    email: user.email ?? '',
+    name: (m.name as string) ?? undefined,
+    goal: (m.goal as Profile['goal']) ?? undefined,
+    height: typeof m.height === 'number' ? m.height : undefined,
+    weight: typeof m.weight === 'number' ? m.weight : undefined,
+    targetWeight: typeof m.targetWeight === 'number' ? m.targetWeight : undefined,
+  };
 }
 
 export function AuthProvider({ children }: React.PropsWithChildren) {
-  const [isLoading, setLoading] = useState(true);
-  const [isSignedIn, setSignedIn] = useState(false);
+  const [bootLoading, setBootLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
 
+  // 앱 시작 시 세션/프로필 로드
   useEffect(() => {
     (async () => {
-      try {
-        const [token, remember, savedProfile] = await Promise.all([
-          AsyncStorage.getItem(TOKEN_KEY),
-          AsyncStorage.getItem(REMEMBER_KEY),
-          AsyncStorage.getItem(PROFILE_KEY),
-        ]);
-        setSignedIn(Boolean(token && remember === 'true'));
-        setProfile(savedProfile ? JSON.parse(savedProfile) : null);
-      } finally {
-        setLoading(false);
-      }
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session ?? null);
+      setProfile(extractProfileFromUser(data.session?.user ?? null));
+      setBootLoading(false);
     })();
+
+    // 세션/유저 업데이트 감지
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s ?? null);
+      setProfile(extractProfileFromUser(s?.user ?? null));
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string, remember: boolean) => {
-    setLoading(true);
-    try {
-      const token = await mockLogin(email, password);
-      await AsyncStorage.multiSet([
-        [TOKEN_KEY, token],
-        [REMEMBER_KEY, remember ? 'true' : 'false'],
-      ]);
-      // 프로필이 없다면 최소 email만 채워두기
-      const existing = await AsyncStorage.getItem(PROFILE_KEY);
-      if (!existing) {
-        const prof: Profile = { email, name: email.split('@')[0] };
-        await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(prof));
-        setProfile(prof);
-      } else {
-        setProfile(JSON.parse(existing));
-      }
-      setSignedIn(true);
-    } finally {
-      setLoading(false);
-    }
+  // 수동 새로고침
+  const refreshProfile = async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error) setProfile(extractProfileFromUser(data.user ?? null));
   };
 
-  const register = async (data: Profile & { password: string }, remember: boolean) => {
-    setLoading(true);
-    try {
-      await mockRegister();
-      const token = await mockLogin(data.email, data.password);
-      const { password, ...profileForStore } = data;
-      await AsyncStorage.multiSet([
-        [TOKEN_KEY, token],
-        [REMEMBER_KEY, remember ? 'true' : 'false'],
-        [PROFILE_KEY, JSON.stringify(profileForStore)],
-      ]);
-      setProfile(profileForStore);
-      setSignedIn(true);
-    } finally {
-      setLoading(false);
-    }
+  const signIn = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    setSession(data.session ?? null);
+    setProfile(extractProfileFromUser(data.user ?? null));
+  };
+
+  const register = async (data: Omit<Profile, 'id' | 'email'> & { email: string; password: string }) => {
+    const { email, password, ...rest } = data;
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: rest }, // ← name/goal/height/weight/targetWeight 가 user_metadata 로 저장됨
+    });
+    if (error) throw error;
+    setSession(signUpData.session ?? null);
+    setProfile(extractProfileFromUser(signUpData.user ?? null));
   };
 
   const signOut = async () => {
-    setLoading(true);
-    try {
-      await AsyncStorage.multiRemove([TOKEN_KEY, REMEMBER_KEY]);
-      setSignedIn(false);
-    } finally {
-      setLoading(false);
-    }
+    await supabase.auth.signOut();
+    setSession(null);
+    setProfile(null);
   };
 
   const value = useMemo(
-    () => ({ isLoading, isSignedIn, profile, signIn, register, signOut }),
-    [isLoading, isSignedIn, profile]
+    () => ({
+      isLoading: bootLoading,
+      session,
+      profile,
+      signIn,
+      register,
+      signOut,
+      refreshProfile,
+    }),
+    [bootLoading, session, profile]
   );
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

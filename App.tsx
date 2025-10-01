@@ -11,9 +11,9 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import MainTabs from './stack/MainTabs';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
-import SettingsScreen from './screens/SettingsScreen';          // ✅ 설정
-import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen'; // ✅ 개인정보 보호
-import HelpScreen from './screens/HelpScreen';                   // ✅ 도움말 및 지원
+import SettingsScreen from './screens/SettingsScreen';          
+import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
+import HelpScreen from './screens/HelpScreen';
 
 // react-navigation 테마를 앱 테마에 맞게 매핑
 const MyTheme = {
@@ -28,7 +28,7 @@ const MyTheme = {
   },
 };
 
-// ✅ 전역 스택 타입 — Settings/PrivacyPolicy/Help 추가
+// 전역 스택 타입
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -41,17 +41,17 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function RootNavigator() {
-  const { isLoading, isSignedIn } = useAuth();
+  const { isLoading, session } = useAuth();
   if (isLoading) return null;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {isSignedIn ? (
+      {session ? (
         <>
           {/* 메인 탭 */}
           <Stack.Screen name="Main" component={MainTabs} />
 
-          {/* 설정: 전역에서 모달처럼 오픈 */}
+          {/* 설정 모달 */}
           <Stack.Screen
             name="Settings"
             component={SettingsScreen}
@@ -62,7 +62,7 @@ function RootNavigator() {
             }}
           />
 
-          {/* 개인정보 보호: 설정 내에서 푸시 네비게이션 */}
+          {/* 개인정보 보호 */}
           <Stack.Screen
             name="PrivacyPolicy"
             component={PrivacyPolicyScreen}
@@ -73,7 +73,7 @@ function RootNavigator() {
             }}
           />
 
-          {/* 도움말 및 지원: 설정 내에서 푸시 네비게이션 */}
+          {/* 도움말 */}
           <Stack.Screen
             name="Help"
             component={HelpScreen}

@@ -2,6 +2,10 @@
   "expo": {
     "name": "secondproject",
     "slug": "secondproject",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "extra": {
+      "SUPABASE_URL": "https://lvocdjtueqawkrqgtwaj.supabase.co",
+      "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2b2NkanR1ZXFhd2tycWd0d2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjIzMDUsImV4cCI6MjA3NDgzODMwNX0.D3DCo4wQlatEYXdHIzhMxXxL26qUIURz2onXyGhcf6E" 
+    }
   }
 }

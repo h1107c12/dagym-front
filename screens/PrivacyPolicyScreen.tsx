@@ -75,9 +75,11 @@ const CardTitle = styled.Text`
   font-weight: 800;
 `;
 
-const Badge = styled.Text<{ fg?: string; bg?: string }>`
-  color: ${(p) => p.fg ?? '#7c3aed'};
-  background: ${(p) => p.bg ?? '#f3e8ff'};
+/* 👇 Badge: props 통째로 받아 사용 (방법 1) */
+type BadgeProps = { fg?: string; bg?: string };
+const Badge = styled.Text<BadgeProps>`
+  color: ${(props: BadgeProps) => props.fg ?? '#7c3aed'};
+  background: ${(props: BadgeProps) => props.bg ?? '#f3e8ff'};
   padding: 4px 8px;
   border-radius: 999px;
   font-weight: 700;
@@ -130,7 +132,6 @@ type Section = {
 
 export default function PrivacyPolicyScreen() {
   const nav = useNavigation();
-
   const lastUpdated = '2024년 12월 20일';
 
   const sections: Section[] = [
@@ -142,11 +143,21 @@ export default function PrivacyPolicyScreen() {
       items: [
         {
           category: '필수 수집 정보',
-          details: ['이메일 주소 (로그인 및 계정 관리)', '닉네임 (서비스 이용)', '신체 정보 (키, 체중, 나이)', '운동 목표 및 선호도'],
+          details: [
+            '이메일 주소 (로그인 및 계정 관리)',
+            '닉네임 (서비스 이용)',
+            '신체 정보 (키, 체중, 나이)',
+            '운동 목표 및 선호도',
+          ],
         },
         {
           category: '선택 수집 정보',
-          details: ['프로필 사진', '식품 알레르기 정보', '운동 장비 보유 현황', '건강 상태 정보'],
+          details: [
+            '프로필 사진',
+            '식품 알레르기 정보',
+            '운동 장비 보유 현황',
+            '건강 상태 정보',
+          ],
         },
         {
           category: '자동 수집 정보',
@@ -162,11 +173,21 @@ export default function PrivacyPolicyScreen() {
       items: [
         {
           category: '맞춤형 서비스 제공',
-          details: ['AI 기반 식단 추천', '개인별 운동 루틴 생성', '건강 목표 달성 코칭', '진행 상황 분석 및 피드백'],
+          details: [
+            'AI 기반 식단 추천',
+            '개인별 운동 루틴 생성',
+            '건강 목표 달성 코칭',
+            '진행 상황 분석 및 피드백',
+          ],
         },
         {
           category: '서비스 운영',
-          details: ['회원 가입 및 관리', '고객 지원 서비스', '서비스 개선 및 개발', '통계 분석 및 연구'],
+          details: [
+            '회원 가입 및 관리',
+            '고객 지원 서비스',
+            '서비스 개선 및 개발',
+            '통계 분석 및 연구',
+          ],
         },
       ],
     },
@@ -178,7 +199,10 @@ export default function PrivacyPolicyScreen() {
       items: [
         {
           category: '제3자 제공',
-          details: ['사용자 동의 없이 제3자에게 개인정보를 제공하지 않습니다', '법적 요구가 있는 경우에만 예외적으로 제공'],
+          details: [
+            '사용자 동의 없이 제3자에게 개인정보를 제공하지 않습니다',
+            '법적 요구가 있는 경우에만 예외적으로 제공',
+          ],
         },
         {
           category: '업무 위탁',
@@ -194,11 +218,19 @@ export default function PrivacyPolicyScreen() {
       items: [
         {
           category: '보관 기간',
-          details: ['회원 탈퇴 시까지 보관', '탈퇴 후 30일 이내 모든 데이터 완전 삭제', '법정 보관 의무가 있는 경우에만 예외'],
+          details: [
+            '회원 탈퇴 시까지 보관',
+            '탈퇴 후 30일 이내 모든 데이터 완전 삭제',
+            '법정 보관 의무가 있는 경우에만 예외',
+          ],
         },
         {
           category: '파기 방법',
-          details: ['전자적 파일: 복구 불가능하게 완전 삭제', '물리적 문서: 분쇄 또는 소각', '정기적인 데이터 정리 실시'],
+          details: [
+            '전자적 파일: 복구 불가능하게 완전 삭제',
+            '물리적 문서: 분쇄 또는 소각',
+            '정기적인 데이터 정리 실시',
+          ],
         },
       ],
     },
@@ -210,11 +242,21 @@ export default function PrivacyPolicyScreen() {
       items: [
         {
           category: '권리 행사',
-          details: ['개인정보 열람 및 정정 요구', '개인정보 삭제 요구', '개인정보 처리 정지 요구', '손해배상 청구권'],
+          details: [
+            '개인정보 열람 및 정정 요구',
+            '개인정보 삭제 요구',
+            '개인정보 처리 정지 요구',
+            '손해배상 청구권',
+          ],
         },
         {
           category: '권리 행사 방법',
-          details: ['앱 내 설정 메뉴를 통한 직접 관리', '고객센터를 통한 요청', '이메일을 통한 문의', '유선 상담을 통한 요청'],
+          details: [
+            '앱 내 설정 메뉴를 통한 직접 관리',
+            '고객센터를 통한 요청',
+            '이메일을 통한 문의',
+            '유선 상담을 통한 요청',
+          ],
         },
       ],
     },
@@ -240,16 +282,27 @@ export default function PrivacyPolicyScreen() {
         {/* 업데이트 정보 */}
         <Card style={{ borderColor: '#E9D5FF', backgroundColor: '#FAF5FF' }}>
           <CardHeader>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Ionicons name="alert-circle-outline" size={16} color="#7C3AED" />
-                <Title style={{ color: '#5B21B6', fontWeight: '700', fontSize: 14 }}>최종 업데이트</Title>
+                <Title style={{ color: '#5B21B6', fontWeight: '700', fontSize: 14 }}>
+                  최종 업데이트
+                </Title>
               </View>
-              <Badge bg="#F3E8FF" fg="#7C3AED">{lastUpdated}</Badge>
+              <Badge bg="#F3E8FF" fg="#7C3AED">
+                {lastUpdated}
+              </Badge>
             </View>
           </CardHeader>
           <Muted style={{ marginTop: 2, color: '#6B21A8' }}>
-            다짐(daGYM)은 사용자의 개인정보 보호를 최우선으로 생각하며, 관련 법령을 준수하여 개인정보를 안전하게 관리합니다.
+            다짐(daGYM)은 사용자의 개인정보 보호를 최우선으로 생각하며, 관련 법령을 준수하여 개인정보를
+            안전하게 관리합니다.
           </Muted>
         </Card>
 
@@ -275,7 +328,9 @@ export default function PrivacyPolicyScreen() {
                   </View>
                   <CardTitle>{section.title}</CardTitle>
                   <View style={{ marginLeft: 'auto' }}>
-                    <Badge bg="#fff" fg="#7a7a90">{idx + 1}</Badge>
+                    <Badge bg="#fff" fg="#7a7a90">
+                      {idx + 1}
+                    </Badge>
                   </View>
                 </View>
               </CardHeader>
@@ -310,14 +365,36 @@ export default function PrivacyPolicyScreen() {
           </CardHeader>
 
           <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                backgroundColor: '#fff',
+                borderRadius: 12,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+              }}
+            >
               <Ionicons name="mail-outline" size={16} color="#3B82F6" />
               <View style={{ flex: 1 }}>
                 <Title style={{ marginBottom: 0 }}>이메일 문의</Title>
                 <Muted>privacy@dagym.co.kr</Muted>
               </View>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                backgroundColor: '#fff',
+                borderRadius: 12,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+              }}
+            >
               <Ionicons name="call" size={16} color="#10B981" />
               <View style={{ flex: 1 }}>
                 <Title style={{ marginBottom: 0 }}>전화 문의</Title>
