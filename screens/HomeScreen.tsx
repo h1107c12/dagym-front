@@ -199,8 +199,28 @@ const POOLS:Record<Slot,string[]>={
 
 /* ---------- component ---------- */
 export default function HomeScreen() {
-  const { signOut, user } = useAuth() as any;
+  // NOTE: any로 받되, 내부에서 안전하게 꺼내쓰도록 처리
+  const auth = useAuth() as any;
+  const { signOut } = auth;
   const nav = useNavigation<any>();
+
+  // 로그인 사용자 정보 추출 (세션/프로필/유저 메타데이터 순)
+  const displayEmail: string =
+    auth?.session?.user?.email ??
+    auth?.user?.email ??
+    auth?.profile?.email ??
+    'user@example.com';
+
+  const displayName: string =
+    auth?.session?.user?.user_metadata?.name ??
+    auth?.user?.name ??
+    auth?.profile?.name ??
+    (displayEmail ? displayEmail.split('@')[0] : '사용자');
+
+  const displayGoal: string =
+    auth?.session?.user?.user_metadata?.goal ??
+    auth?.profile?.goal ??
+    '목표 미설정';
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -213,12 +233,12 @@ export default function HomeScreen() {
   useEffect(() => {
     const now = new Date();
     const slot = getSlot(now);
-    const name = (user?.name as string | undefined) ?? '다짐 사용자님';
+    const nameForGreeting = displayName ? `${displayName}님` : '사용자님';
     const pick = POOLS[slot][Math.floor(Math.random()*POOLS[slot].length)];
-    setHeroText(pick.replace('{name}', name));
+    setHeroText(pick.replace('{name}', nameForGreeting));
     setHeroMeta(`${dayNames[now.getDay()]}요일 · 실시간 분석`);
-    setGoalLabel((user?.goal as string | undefined) ?? '체중 감량');
-  }, [user]);
+    setGoalLabel(displayGoal === '목표 미설정' ? '체중 감량' : displayGoal);
+  }, [displayName, displayGoal]);
 
   const now = new Date();
   const headerSubtitle = `${now.getMonth()+1}월 ${now.getDate()}일 (${dayNames[now.getDay()]}) · ${partLabel(now.getHours())}`;
@@ -407,9 +427,9 @@ export default function HomeScreen() {
           <MenuWrap>
             <Menu style={appTheme.shadow.card}>
               <MenuHeader>
-                <MenuName>{user?.name ?? '다짐 사용자'}</MenuName>
-                <MenuEmail>{user?.email ?? 'user@example.com'}</MenuEmail>
-                <SmallPill>목표 미설정</SmallPill>
+                <MenuName>{displayName || '사용자'}</MenuName>
+                <MenuEmail>{displayEmail}</MenuEmail>
+                <SmallPill>{displayGoal || '목표 미설정'}</SmallPill>
               </MenuHeader>
 
               <Divider />
@@ -453,8 +473,8 @@ export default function HomeScreen() {
               <ConfirmTitle>로그아웃 하시겠습니까?</ConfirmTitle>
 
               <UserBox>
-                <UName>{user?.name ?? '다짐 사용자님'}</UName>
-                <UMail>{user?.email ?? 'user@example.com'}</UMail>
+                <UName>{displayName || '사용자'}</UName>
+                <UMail>{displayEmail}</UMail>
                 <Row>
                   <Pill>
                     <Ionicons name="flame" size={12} color="#ef4444" />
@@ -462,7 +482,7 @@ export default function HomeScreen() {
                   </Pill>
                   <Pill>
                     <Ionicons name="ellipse-outline" size={12} color="#7a7a90" />
-                    <PillText>목표 미설정</PillText>
+                    <PillText>{displayGoal || '목표 미설정'}</PillText>
                   </Pill>
                 </Row>
               </UserBox>
