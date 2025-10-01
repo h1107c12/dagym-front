@@ -1,17 +1,21 @@
+// screens/WorkoutScreen.tsx
 import React from 'react';
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 import type { DefaultTheme } from 'styled-components/native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+type TTheme = { theme: DefaultTheme };
 
 const Page = styled(SafeAreaView)`
   flex: 1;
-  background-color: ${(p: { theme: DefaultTheme }) => p.theme.colors.background};
+  background-color: ${(p: TTheme) => p.theme.colors.background};
 `;
 
 const Container = styled(ScrollView).attrs({
   contentContainerStyle: {
-    paddingTop: 20,        // ✅ 상단 여백 (식단탭과 동일)
+    paddingTop: 20, // 상단 여백 (식단탭과 동일)
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
@@ -19,8 +23,12 @@ const Container = styled(ScrollView).attrs({
   flex: 1;
 `;
 
-const Banner = styled.View`
-  background: #ff6b3d;
+/* 메인 배너: 앱 테마 그라데이션 사용 */
+const Banner = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
+  colors: [p.theme.colors.gradientFrom, p.theme.colors.gradientTo],
+  start: { x: 0, y: 0 },
+  end: { x: 1, y: 1 },
+}))`
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 16px;
@@ -33,25 +41,25 @@ const BannerRow = styled.View`
 `;
 
 const BannerTitle = styled.Text`
-  color: white;
+  color: #ffffff;
   font-weight: 800;
   font-size: 16px;
 `;
 
 const Percent = styled.Text`
-  color: white;
+  color: #ffffff;
   font-weight: 800;
   font-size: 18px;
 `;
 
 const Sub = styled.Text`
-  color: #ffe7de;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 12px;
 `;
 
 const Bar = styled.View`
   height: 8px;
-  background: #ffdacb;
+  background: rgba(255, 255, 255, 0.35);
   border-radius: 8px;
   margin-top: 8px;
 `;
@@ -59,19 +67,29 @@ const Bar = styled.View`
 const Fill = styled.View`
   height: 8px;
   width: 17%;
-  background: white;
+  background: #ffffff;
   border-radius: 8px;
 `;
 
 const Section = styled.View`
-  background: white;
+  background: ${(p: TTheme) => p.theme.colors.surface};
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 12px;
 `;
 
+const SectionTitle = styled.Text`
+  color: ${(p: TTheme) => p.theme.colors.text};
+  font-weight: 800;
+`;
+
+const SectionSub = styled.Text`
+  color: ${(p: TTheme) => p.theme.colors.muted};
+  font-size: 12px;
+`;
+
 const Item = styled.View`
-  background: #f6f7fb;
+  background: #eef4fd; /* 메인컬러(#99B7E8) 톤에 맞춘 라이트 틴트 */
   border-radius: 12px;
   padding: 12px;
   margin-top: 8px;
@@ -81,13 +99,13 @@ const Item = styled.View`
 `;
 
 const Btn = styled.TouchableOpacity`
-  background: #12131a;
+  background: ${(p: TTheme) => p.theme.colors.primary};
   padding: 8px 12px;
   border-radius: 10px;
 `;
 
 const BtnText = styled.Text`
-  color: white;
+  color: #ffffff;
   font-weight: 700;
 `;
 
@@ -101,12 +119,14 @@ export default function WorkoutScreen() {
             <Percent>17% 완료</Percent>
           </BannerRow>
           <Sub>전신 근력 운동 · 45분</Sub>
-          <Bar><Fill /></Bar>
+          <Bar>
+            <Fill />
+          </Bar>
         </Banner>
 
         <Section>
-          <BannerTitle style={{ color: '#121212' }}>이번 주 운동 현황</BannerTitle>
-          <Sub style={{ color: '#7a7a90', marginTop: 8 }}>월·화 완료, 수 진행 중</Sub>
+          <SectionTitle>이번 주 운동 현황</SectionTitle>
+          <SectionSub style={{ marginTop: 8 }}>월·화 완료, 수 진행 중</SectionSub>
         </Section>
 
         {[
@@ -114,11 +134,13 @@ export default function WorkoutScreen() {
           { title: '2. 상체 근력', items: ['푸시업', '랫풀다운', '덤벨컬'] },
         ].map(({ title, items }) => (
           <Section key={title}>
-            <BannerTitle style={{ color: '#121212' }}>{title}</BannerTitle>
+            <SectionTitle>{title}</SectionTitle>
             {items.map((name) => (
               <Item key={name}>
-                <Sub style={{ color: '#121212' }}>{name} · 30초</Sub>
-                <Btn><BtnText>시작</BtnText></Btn>
+                <SectionSub style={{ color: '#121212' }}>{name} · 30초</SectionSub>
+                <Btn>
+                  <BtnText>시작</BtnText>
+                </Btn>
               </Item>
             ))}
           </Section>

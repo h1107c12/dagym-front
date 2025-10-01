@@ -1,18 +1,23 @@
-import React from 'react';
+// screens/DietScreen.tsx
+import React, { useMemo } from 'react';
 import { ScrollView, Image, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import styled from 'styled-components/native';
+import styled, { useTheme } from 'styled-components/native';
 import type { DefaultTheme } from 'styled-components/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import Card from '../src/components/Card';
 import SectionHeader from '../src/components/SectionHeader';
 import Chip from '../src/components/Chip';
 import ProgressBar from '../src/components/ProgressBar';
 import appTheme from '../src/styles/theme';
 
+type TTheme = { theme: DefaultTheme };
+
 const Page = styled(SafeAreaView)`
   flex: 1;
-  background-color: ${(p: { theme: DefaultTheme }) => p.theme.colors.background};
+  background-color: ${(p: TTheme) => p.theme.colors.background};
 `;
 
 const Container = styled(ScrollView)`
@@ -20,27 +25,31 @@ const Container = styled(ScrollView)`
   padding: 20px 16px;
 `;
 
-const Banner = styled.View`
-  background: #0bb37d;
+/* 메인 배너: 테마 그라데이션 사용 */
+const Banner = styled(LinearGradient).attrs((p: { theme: DefaultTheme }) => ({
+  colors: [p.theme.colors.gradientFrom, p.theme.colors.gradientTo],
+  start: { x: 0, y: 0 },
+  end: { x: 1, y: 1 },
+}))`
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 16px;
 `;
 
 const BannerTitle = styled.Text`
-  color: white;
+  color: #ffffff;
   font-weight: 800;
   font-size: 16px;
   margin-bottom: 6px;
 `;
 
 const BannerText = styled.Text`
-  color: #eafff7;
+  color: rgba(255,255,255,0.9);
   font-size: 13px;
 `;
 
 const Title = styled.Text`
-  color: ${(p: { theme: DefaultTheme }) => p.theme.colors.text};
+  color: ${(p: TTheme) => p.theme.colors.text};
   font-weight: 800;
 `;
 
@@ -51,7 +60,7 @@ const Row = styled.View`
 `;
 
 const Stat = styled.Text`
-  color: #7a7a90;
+  color: ${(p: TTheme) => p.theme.colors.muted};
   font-size: 12px;
 `;
 
@@ -61,7 +70,7 @@ const MacroCard = styled(Card)`
 `;
 
 const AddBtn = styled.TouchableOpacity`
-  background: #12131a;
+  background: ${(p: TTheme) => p.theme.colors.primary};
   padding: 12px;
   border-radius: 12px;
   align-items: center;
@@ -85,14 +94,21 @@ const meals = [
   { title: '토마토 파스타(라이트)', kcal: 510, img: 'https://picsum.photos/seed/diet3/80' },
 ];
 
-const nutrients: [label: string, v: number, max: number, color: string][] = [
-  ['단백질', 45, 120, '#6e56cf'],
-  ['탄수화물', 120, 200, '#0b76d1'],
-  ['지방', 35, 50, '#ff8a00'],
-  ['식이섬유', 15, 25, '#13a10e'],
-];
-
 export default function DietScreen() {
+  const theme = useTheme() as DefaultTheme;
+
+  // 영양소 바 색상: 메인 컬러와 톤 맞춘 팔레트
+  const nutrients = useMemo(
+    () =>
+      [
+        ['단백질', 45, 120, theme.colors.primary], // 메인 컬러
+        ['탄수화물', 120, 200, '#5A8FD9'],        // gradientTo와 톤 맞춤
+        ['지방', 35, 50, '#FFB86C'],              // 따뜻한 보조색
+        ['식이섬유', 15, 25, '#7CC7A4'],          // 민트톤 보조색
+      ] as [label: string, v: number, max: number, color: string][],
+    [theme.colors.primary]
+  );
+
   return (
     <Page>
       <Container>
@@ -105,7 +121,9 @@ export default function DietScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color="#fff" />
           </Row>
-          <BannerText>현재 단백질 섭취가 부족합니다. 단백질이 풍부한 식단을 추천드려요.</BannerText>
+          <BannerText>
+            현재 단백질 섭취가 부족합니다. 단백질이 풍부한 식단을 추천드려요.
+          </BannerText>
         </Banner>
 
         {/* 오늘의 영양소 섭취 */}
@@ -117,7 +135,9 @@ export default function DietScreen() {
               <MacroCard key={label} style={appTheme.shadow.card}>
                 <Row>
                   <Title style={{ fontSize: 14 }}>{label}</Title>
-                  <Stat>{v}/{max}g</Stat>
+                  <Stat>
+                    {v}/{max}g
+                  </Stat>
                 </Row>
                 <ProgressBar percent={pct} color={color} style={{ marginTop: 6 }} />
               </MacroCard>
@@ -135,12 +155,15 @@ export default function DietScreen() {
                 <Title style={{ flex: 1, fontSize: 14 }}>{m.title}</Title>
                 <Stat>{m.kcal} kcal</Stat>
               </MealRow>
+
               <View style={{ height: 8 }} />
+
               <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                 <Chip>고단백</Chip>
                 <Chip>저칼로리</Chip>
                 <Chip>글루텐프리</Chip>
               </View>
+
               <AddBtn>
                 <AddText>식단에 추가</AddText>
               </AddBtn>

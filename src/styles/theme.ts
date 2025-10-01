@@ -1,11 +1,11 @@
 // src/styles/theme.ts
 export const theme = {
   colors: {
-    // 핵심 컬러
-    primary: '#6E56CF',        // 퍼플
-    primarySoft: '#F3EFFF',
-    gradientFrom: '#9C6BFF',   // 히어로 카드 그라데 시작
-    gradientTo:   '#FF6AA9',   // 히어로 카드 그라데 끝
+    // 핵심 컬러 (메인 컬러 블루 톤)
+    primary: '#99B7E8',        // 메인 컬러
+    primarySoft: '#E8F1FF',    // 연한 톤(배지/칩/배경)
+    gradientFrom: '#99B7E8',   // 히어로 카드 그라데 시작
+    gradientTo:   '#5A8FD9',   // 히어로 카드 그라데 끝
 
     // 배경/표면/텍스트
     background: '#F7F7FB',
@@ -14,7 +14,7 @@ export const theme = {
     muted:      '#7A7A90',
     border:     '#E9E9F1',
 
-    // 배지/추천 카드 배경
+    // 배지/추천 카드 배경 (기존 팔레트 유지)
     streakBg: '#E7F6E7',
     dietRecoBg: '#FCEBFA',
     workoutRecoBg: '#EAF3FF',

@@ -22,11 +22,14 @@ const Container = styled(ScrollView).attrs({
   contentContainerStyle:{ paddingTop:20, paddingHorizontal:16, paddingBottom:24 },
 })`flex:1;`;
 
-const Hero = styled(LinearGradient).attrs({
-  colors:['#7c6cf2','#e057c2'], start:{x:0,y:0}, end:{x:1,y:1},
-})`border-radius:16px;padding:16px;margin-bottom:16px;`;
+/* 메인 컬러 그라데이션(테마 사용) */
+const Hero = styled(LinearGradient).attrs((p:{theme:DefaultTheme})=>({
+  colors:[p.theme.colors.gradientFrom, p.theme.colors.gradientTo],
+  start:{x:0,y:0}, end:{x:1,y:1},
+}))`border-radius:16px;padding:16px;margin-bottom:16px;`;
+
 const HeroTitle = styled.Text`color:#fff;font-weight:800;margin-bottom:4px;`;
-const HeroMeta  = styled.Text`color:rgba(255,255,255,.8);`;
+const HeroMeta  = styled.Text`color:rgba(255,255,255,.9);`;
 const HeroBig   = styled.Text`color:#fff;font-weight:800;font-size:20px;`;
 
 const Grid = styled.View`flex-direction:row;flex-wrap:wrap;gap:12px;`;
@@ -36,9 +39,11 @@ const Card = styled.View`
 `;
 const Title = styled.Text`font-weight:800;margin-bottom:6px;color:${(p:TTheme)=>p.theme.colors.text};`;
 const Sub = styled.Text`color:#7a7a90;`;
+
+/* 프로그레스 바: 기본색을 primary로 */
 const ProgressTrack = styled.View`height:6px;background:#eee;border-radius:999px;margin-top:8px;`;
 const ProgressFill  = styled.View<{w:number;color?:string}>`
-  height:100%;width:${p=>p.w}%;border-radius:999px;background:${p=>p.color||'#6E56CF'};
+  height:100%;width:${p=>p.w}%;border-radius:999px;background:${(p:TTheme & {color?:string})=>p.color ?? p.theme.colors.primary};
 `;
 
 const ChartCard = styled.View`
@@ -101,7 +106,7 @@ export default function ReportScreen() {
     return weeklyData.map((d,i)=>({ x: sx(i,weeklyData.length,wChartW), y: sy(d.weight,wMin,wMax) }));
   },[wChartW]);
 
-  // 선 길이 계산
+  // polyline 길이
   const pathLen = useMemo(()=>{
     if(weightPts.length<2) return 0;
     let L = 0;
@@ -112,7 +117,7 @@ export default function ReportScreen() {
     return L;
   },[weightPts]);
 
-  // dashoffset 애니메이션 (왼→오른쪽)
+  // dashoffset 애니메이션 (왼→오)
   const dashOffset = useMemo(()=>new Animated.Value(0),[]);
   useEffect(()=>{
     if(pathLen>0){
@@ -121,7 +126,7 @@ export default function ReportScreen() {
         toValue: 0,
         duration: 1100,
         easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: false, // svg 수치 props
+        useNativeDriver: false,
       }).start();
     }
   },[pathLen, dashOffset]);
@@ -136,7 +141,7 @@ export default function ReportScreen() {
           toValue: 1,
           duration: 600,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: false, // svg y/height
+          useNativeDriver: false,
         }))
       ).start();
     }
@@ -164,38 +169,50 @@ export default function ReportScreen() {
               {monthlyStats.weightLoss.value} {monthlyStats.weightLoss.unit}
             </HeroBig>
             <Sub>목표: {monthlyStats.weightLoss.target}{monthlyStats.weightLoss.unit}</Sub>
-            <ProgressTrack><ProgressFill w={(monthlyStats.weightLoss.value/monthlyStats.weightLoss.target)*100}/></ProgressTrack>
+            <ProgressTrack>
+              <ProgressFill w={(monthlyStats.weightLoss.value/monthlyStats.weightLoss.target)*100}/>
+            </ProgressTrack>
           </Card>
+
           <Card>
             <Title>{monthlyStats.avgCalories.label}</Title>
             <HeroBig style={{color:'#121212',fontSize:18}}>
               {monthlyStats.avgCalories.value} {monthlyStats.avgCalories.unit}
             </HeroBig>
             <Sub>목표: {monthlyStats.avgCalories.target}{monthlyStats.avgCalories.unit}</Sub>
-            <ProgressTrack><ProgressFill w={(monthlyStats.avgCalories.value/monthlyStats.avgCalories.target)*100} color="#333"/></ProgressTrack>
+            <ProgressTrack>
+              <ProgressFill w={(monthlyStats.avgCalories.value/monthlyStats.avgCalories.target)*100}/>
+            </ProgressTrack>
           </Card>
+
           <Card>
             <Title>{monthlyStats.workoutDays.label}</Title>
             <HeroBig style={{color:'#121212',fontSize:18}}>
               {monthlyStats.workoutDays.value} {monthlyStats.workoutDays.unit}
             </HeroBig>
             <Sub>목표: {monthlyStats.workoutDays.target}{monthlyStats.workoutDays.unit}</Sub>
-            <ProgressTrack><ProgressFill w={(monthlyStats.workoutDays.value/monthlyStats.workoutDays.target)*100} color="#0b76d1"/></ProgressTrack>
+            <ProgressTrack>
+              <ProgressFill w={(monthlyStats.workoutDays.value/monthlyStats.workoutDays.target)*100}/>
+            </ProgressTrack>
           </Card>
+
           <Card>
             <Title>{monthlyStats.bodyFat.label}</Title>
             <HeroBig style={{color:'#121212',fontSize:18}}>
               {monthlyStats.bodyFat.value} {monthlyStats.bodyFat.unit}
             </HeroBig>
             <Sub>목표: {monthlyStats.bodyFat.target}{monthlyStats.bodyFat.unit}</Sub>
-            <ProgressTrack><ProgressFill w={(monthlyStats.bodyFat.value/monthlyStats.bodyFat.target)*100} color="#ef4444"/></ProgressTrack>
+            <ProgressTrack>
+              {/* 체지방은 경고 톤 유지 원하면 빨강, 아니면 primary로 바꿔도 됨 */}
+              <ProgressFill w={(monthlyStats.bodyFat.value/monthlyStats.bodyFat.target)*100} color="#ef4444"/>
+            </ProgressTrack>
           </Card>
         </Grid>
 
         {/* ===== 주간 체중 변화 (꺾은선 애니메이션) ===== */}
         <ChartCard>
           <SectionHeader>
-            <Ionicons name="trending-down-outline" size={16} color="#22c55e" />
+            <Ionicons name="trending-down-outline" size={16} color="#99B7E8" />
             <SectionTitle>주간 체중 변화</SectionTitle>
           </SectionHeader>
 
@@ -205,7 +222,7 @@ export default function ReportScreen() {
               <Svg width={wChartW} height={CHART_H}>
                 {/* grid + y labels */}
                 <G>
-                  {[71,71.5,72,72.5,73].map((v,i)=>{
+                  {yTicksWeight.map((v,i)=>{
                     const y = sy(v, wMin, wMax);
                     return (
                       <G key={i}>
@@ -237,16 +254,16 @@ export default function ReportScreen() {
                 <AnimatedPolyline
                   points={weightPts.map(p=>`${p.x},${p.y}`).join(' ')}
                   fill="none"
-                  stroke="#8b5cf6"
+                  stroke={(Hero as any).attrs?.theme?.colors?.primary ?? '#99B7E8'}
                   strokeWidth={3}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeDasharray={`${pathLen} ${pathLen}`}
-                  strokeDashoffset={dashOffset as unknown as any}   // ← Animated.Value 그대로 전달
+                  strokeDashoffset={dashOffset as unknown as any}
                 />
-                {/* dots는 고정 */}
+                {/* dots: 메인컬러 */}
                 {weightPts.map((p,i)=>(
-                  <Circle key={i} cx={p.x} cy={p.y} r={4} fill="#8b5cf6" stroke="#fff" strokeWidth={1.2}/>
+                  <Circle key={i} cx={p.x} cy={p.y} r={4} fill="#99B7E8" stroke="#fff" strokeWidth={1.2}/>
                 ))}
               </Svg>
             )}
@@ -256,7 +273,7 @@ export default function ReportScreen() {
         {/* ===== 주간 운동 시간 (막대 애니메이션) ===== */}
         <ChartCard>
           <SectionHeader>
-            <Ionicons name="calendar-outline" size={16} color="#3b82f6" />
+            <Ionicons name="calendar-outline" size={16} color="#99B7E8" />
             <SectionTitle>주간 운동 시간</SectionTitle>
           </SectionHeader>
 
@@ -285,7 +302,7 @@ export default function ReportScreen() {
                 </G>
                 <SvgLine x1={PAD.l} y1={CHART_H-PAD.b-6} x2={eChartW-PAD.r} y2={CHART_H-PAD.b-6} stroke="#D7DBE7" strokeWidth={1.5}/>
 
-                {/* bars: 아래에서 위로 */}
+                {/* bars: 아래에서 위로 (메인컬러) */}
                 {weeklyData.map((d,i)=>{
                   const x = sx(i,weeklyData.length,eChartW);
                   const barW = 22;
@@ -300,10 +317,10 @@ export default function ReportScreen() {
                     <AnimatedRect
                       key={i}
                       x={x - barW/2}
-                      y={yAnim as unknown as any}        // ← Animated.Value 그대로
+                      y={yAnim as unknown as any}
                       width={barW}
-                      height={hAnim as unknown as any}   // ← Animated.Value 그대로
-                      fill="#3b82f6"
+                      height={hAnim as unknown as any}
+                      fill="#99B7E8"
                       rx={4}
                     />
                   );
